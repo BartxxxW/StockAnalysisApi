@@ -34,9 +34,6 @@ namespace ApiChecker
             //https://swharden.com/csdv/plotting-free/microsoft-charting/
             string symbol = "QQQ";
 
-            // Specify the time range for the data (01-01-2017 to 01-01-2020)
-            string startDate = "2017-01-01";
-            string endDate = "2020-01-01";
 
             // Create a RestSharp client
             RestClient client = new RestClient(baseURL);
@@ -79,6 +76,9 @@ namespace ApiChecker
 
             //next way:
             // json2 Csharp  (Deserializr object)
+
+
+            //PROCESS DATA => CHANGE TO KEY VALUE PAIR!!! TO be able to combine apropriate values  for  X axis
             var deserializedClass = JsonConvert.DeserializeObject<Root>(response.Content);
             //whwere 20 03-2000
             var dates= deserializedClass.TimeSeriesDaily.Where(i=> DateTime.Parse(i.Key)>DateTime.Parse("23 March 2000")).Select(tds => DateTime.Parse(tds.Key)).ToArray();
@@ -89,6 +89,7 @@ namespace ApiChecker
 
             var sma = smaPoints.GetSma(30).Reverse();
             var sma200 = smaPoints.GetSma(180).Reverse();
+            var mcad = smaPoints.GetMacd(16).Reverse();
             //var smaRSI = smaPoints.GetRsi(60);
 
             //double[] rsiMax=smaRSI.Select(v => {
@@ -115,6 +116,8 @@ namespace ApiChecker
             double[] xs = dates.Select(tds=>tds.ToOADate()).ToArray();
             double[] ys = values;
             var plt = new ScottPlot.Plot(6000, 2500);
+
+            // Basic xs  AND  for range of xs 
             plt.AddScatter(xs, ys);
             plt.AddScatter(xs, smaValues);
             plt.AddScatter(xs, smaValues200);
@@ -122,6 +125,7 @@ namespace ApiChecker
 
 
             plt.XAxis.DateTimeFormat(true);
+        
             plt.SaveFig("quickstart.png");
 
 
