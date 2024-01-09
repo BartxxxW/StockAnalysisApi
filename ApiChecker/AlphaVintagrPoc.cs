@@ -79,8 +79,12 @@ namespace ApiChecker
 
 
             //PROCESS DATA => CHANGE TO KEY VALUE PAIR!!! TO be able to combine apropriate values  for  X axis
-            var deserializedClass = JsonConvert.DeserializeObject<Root>(response.Content);
+            var deserializedClass = JsonConvert.DeserializeObject<RootTimeSeriesDaily>(response.Content); // done
             //whwere 20 03-2000
+            // IModel
+            // Dictionary of Deserialization
+            // Method to deserialize ofr that option
+
             var dates= deserializedClass.TimeSeriesDaily.Where(i=> DateTime.Parse(i.Key)>DateTime.Parse("23 March 2000")).Select(tds => DateTime.Parse(tds.Key)).ToArray();
             var values = deserializedClass.TimeSeriesDaily.Where(i => DateTime.Parse(i.Key) > DateTime.Parse("23 March 2000")).Select(tds=>Convert.ToDouble(tds.Value._4Close.Replace('.',','))).ToArray();
 
@@ -101,14 +105,14 @@ namespace ApiChecker
 
             double[] smaValues = sma.Select(v => {
 
-                if (v.Sma == null) { return 0; }
+                if (v.Sma == null) { return Double.NaN; }
                 return Convert.ToDouble(v.Sma);
                 
             }).ToArray();
 
             double[] smaValues200 = sma200.Select(v => {
 
-                if (v.Sma == null) { return 0; }
+                if (v.Sma == null) { return Double.NaN; }
                 return Convert.ToDouble(v.Sma);
 
             }).ToArray();
@@ -119,13 +123,18 @@ namespace ApiChecker
 
             // Basic xs  AND  for range of xs 
             plt.AddScatter(xs, ys);
-            plt.AddScatter(xs, smaValues);
-            plt.AddScatter(xs, smaValues200);
+            //plt.AddScatter(xs, smaValues);
+            //plt.AddScatter(xs, smaValues200);
+            var scatter1=plt.AddScatter(xs, smaValues);
+            var scatter2 = plt.AddScatter(xs, smaValues200);
             //plt.AddScatter(xs, rsiMax);
-
+            scatter2.OnNaN = ScottPlot.Plottable.ScatterPlot.NanBehavior.Ignore;
+            scatter1.OnNaN = ScottPlot.Plottable.ScatterPlot.NanBehavior.Ignore;
 
             plt.XAxis.DateTimeFormat(true);
-        
+
+
+
             plt.SaveFig("quickstart.png");
 
 

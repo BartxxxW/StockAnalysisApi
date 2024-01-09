@@ -48,7 +48,7 @@ namespace ApiChecker.JsonModels
         public string _5TimeZone { get; set; }
     }
 
-    public class Root
+    public class RootTimeSeriesDaily
     {
         [JsonProperty("Meta Data")]
         public MetaData MetaData { get; set; }
