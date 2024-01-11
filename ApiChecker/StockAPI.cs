@@ -36,11 +36,13 @@ namespace ApiChecker
 
             var stockModel= deserialized.TimeSeriesDaily.Select(tds => tds.ConvertToStockModel());
 
+            // up to now create  isnatnce from  test factory and   get stock model data from that
+
             if (startDay != "")
                 stockModel = stockModel.Where(s => s.Date > DateTime.Parse(startDay));
 
             if (endDay != "")
-                stockModel = stockModel.Where(s => s.Date > DateTime.Parse(endDay));
+                stockModel = stockModel.Where(s => s.Date < DateTime.Parse(endDay));
 
             StockData=stockModel.ToList();
 

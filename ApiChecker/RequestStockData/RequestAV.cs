@@ -15,6 +15,10 @@ namespace ApiChecker.RequestStockData
         Weekly,
         Monthly
     }
+    public enum Sources
+    {
+        AlphaVintage
+    }
     public interface IRequests
     {
         RestResponse TimeSeriesDaily(string stockSymbol);
@@ -38,7 +42,8 @@ namespace ApiChecker.RequestStockData
             request.AddParameter("outputsize", "full");
             request.AddParameter("datatype", "json");
 
-            return client.Execute(request);
+            var result = client.Execute(request);
+            return result;
         }
     }
 }
