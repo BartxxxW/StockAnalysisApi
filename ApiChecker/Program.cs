@@ -2,6 +2,8 @@
 using ApiChecker;
 using ApiChecker.PresentationLayer;
 using ApiChecker.RequestStockData;
+using ApiChecker.Services;
+using Autofac;
 
 Console.WriteLine("Hello, World!");
 
@@ -13,11 +15,22 @@ var aV = new AlphaVintagrPoc();
 
 aV.Check();
 
-var a = new RequestAV();
+var builder = new ContainerBuilder();
 
-var datamodel=StockAPI.Instance(a)
-    .GetStockData("QQQ")
-    .ReturnApiData();
+builder.RegisterType<RequestAV>().As<IRequests>();
+builder.RegisterType<AlphaVintageService>().As<IAlphaVintageService>();
+builder.RegisterType<ServicesResolver>().As<IServicesResolver>();
+builder.RegisterType<StockAPI>().As<IStockAPI>();
+
+var conteiner = builder.Build();
+
+var stockApi = conteiner.Resolve<IStockAPI>();
+
+var datamodel = stockApi.GetStockData("QQQ").ReturnApiData();
+
+//var datamodel=StockAPI.Instance()
+//    .GetStockData("QQQ")
+//    .ReturnApiData();
 
 
 // plot first chsrt in that way

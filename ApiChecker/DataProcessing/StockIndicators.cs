@@ -8,5 +8,6 @@ namespace ApiChecker.DataProcessing
 {
     public class StockIndicators
     {
+        public 
     }
 }

@@ -14,14 +14,23 @@ namespace ApiChecker.Services
     {
         public IEnumerable<StockModel>? Action(string StockSymbol,TimeSeries ts = TimeSeries.Daily);
     }
-    public class AlphaVintageService: IService
+
+    public interface IAlphaVintageService
+    {
+        IRequests Requests { get; set; }
+
+        IEnumerable<StockModel>? Action(string StockSymbol, TimeSeries ts = TimeSeries.Daily);
+        IEnumerable<StockModel>? TimeSeriesDaily(string StockSymbol);
+    }
+
+    public class AlphaVintageService : IService, IAlphaVintageService
     {
         public Dictionary<TimeSeries, Func<string, IEnumerable<StockModel>?>> CallMethod =
             new Dictionary<TimeSeries, Func<string, IEnumerable<StockModel>?>>();
 
         public IRequests Requests { get; set; }
         public AlphaVintageService(IRequests requests)
-        { 
+        {
             Requests = requests;
             CallMethod.Add(TimeSeries.Daily, TimeSeriesDaily);
         }
@@ -33,7 +42,7 @@ namespace ApiChecker.Services
             return deserialized.TimeSeriesDaily.Select(tds => tds.ConvertToStockModel());
         }
 
-        public IEnumerable<StockModel>? Action(string StockSymbol,TimeSeries ts = TimeSeries.Daily)
+        public IEnumerable<StockModel>? Action(string StockSymbol, TimeSeries ts = TimeSeries.Daily)
         {
             return CallMethod[ts](StockSymbol);
         }

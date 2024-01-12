@@ -1,6 +1,7 @@
 ﻿using ApiChecker.DataProcessing;
 using ApiChecker.Models;
 using ApiChecker.RequestStockData;
+using ApiChecker.Services;
 using ApiChecker.SkendorStockModels;
 using ApiChecker.ToolBox;
 using RestSharp;
@@ -14,14 +15,14 @@ namespace ApiChecker
 {
     public interface IGetStockData
     {
-        IStockAPI GetStockData(string StockSymbol,TimeSeries timeSeries=TimeSeries.Daily, string startDay = "", string endDay = "");
+        IStockActions GetStockData(string StockSymbol, Sources sources = Sources.AlphaVintage, TimeSeries timeSeries=TimeSeries.Daily, string startDay = "", string endDay = "");
     }
-    public interface IStockAPI
+    public interface IStockActions
     {
-        IStockAPI AddIndicatior(string IndicatorName, int? param = null, string startDay = "", string endDay = "");
+        IStockActions AddIndicator(string IndicatorName, int? param = null, string startDay = "", string endDay = "");
         ProcessedStockDataModel ReturnApiData();
     }
-    public class StockAPI: IGetStockData, IStockAPI
+    public class StockAPI : IGetStockData, IStockActions, IStockAPI
     {
 
         public IRequests Requests { get; set; }
@@ -30,13 +31,11 @@ namespace ApiChecker
         public List<StockModel> StockData { get; set; }
 
 
-        public IStockAPI GetStockData(string StockSymbol, TimeSeries timeSeries = TimeSeries.Daily, string startDay = "", string endDay = "")
+        public IStockActions GetStockData(string StockSymbol, Sources sources = Sources.AlphaVintage, TimeSeries timeSeries = TimeSeries.Daily, string startDay = "", string endDay = "")
         {
-            var deserialized = DeserializeAvResponse.TimeSeriesDaily(Requests.TimeSeriesDaily(StockSymbol).Content);
 
-            var stockModel= deserialized.TimeSeriesDaily.Select(tds => tds.ConvertToStockModel());
+            var stockModel = _servicesResolver.GetService(sources).Action(StockSymbol, timeSeries);
 
-            // up to now create  isnatnce from  test factory and   get stock model data from that
 
             if (startDay != "")
                 stockModel = stockModel.Where(s => s.Date > DateTime.Parse(startDay));
@@ -44,15 +43,15 @@ namespace ApiChecker
             if (endDay != "")
                 stockModel = stockModel.Where(s => s.Date < DateTime.Parse(endDay));
 
-            StockData=stockModel.ToList();
+            StockData = stockModel.ToList();
 
-            ProcessedStockDataModel.xAxis=StockData.Select(s=>s.Date).ToList();
-            ProcessedStockDataModel.yValues=StockData.Select(s=> Convert.ToDouble(s.Open)).ToList();
+            ProcessedStockDataModel.xAxis = StockData.Select(s => s.Date).ToList();
+            ProcessedStockDataModel.yValues = StockData.Select(s => Convert.ToDouble(s.Open)).ToList();
 
             return this;
         }
 
-        public IStockAPI AddIndicatior( string IndicatorName,int? param=null, string startDay="",string endDay="")
+        public IStockActions AddIndicator(string IndicatorName, int? param = null, string startDay = "", string endDay = "")
         {
             return this;
         }
@@ -62,10 +61,13 @@ namespace ApiChecker
             return ProcessedStockDataModel;
         }
 
-        public static IGetStockData Instance(IRequests requestSource) => new StockAPI(requestSource);
-        private StockAPI(IRequests requestSource) { 
-               this.Requests = requestSource;
+        //public static IGetStockData Instance(IRequests requestSource) => new StockAPI(requestSource);
+        public static IGetStockData Instance(IServicesResolver servicesResolver) => new StockAPI(servicesResolver);
+        public StockAPI(IServicesResolver servicesResolver)
+        {
+            _servicesResolver = servicesResolver;
         }
 
+        private IServicesResolver _servicesResolver;
     }
 }
