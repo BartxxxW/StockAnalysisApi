@@ -1,5 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using ApiChecker;
+using ApiChecker.DataProcessing;
 using ApiChecker.PresentationLayer;
 using ApiChecker.RequestStockData;
 using ApiChecker.Services;
@@ -26,7 +27,15 @@ var conteiner = builder.Build();
 
 var stockApi = conteiner.Resolve<IStockAPI>();
 
-var datamodel = stockApi.GetStockData("QQQ").ReturnApiData();
+//var datamodel = stockApi.GetStockData("QQQ").ReturnApiData();
+var datamodel = stockApi.GetStockData("QQQ",startDay:"2004-04-04")
+    .AddIndicator(Indicators.SMA,7)
+    .AddIndicator(Indicators.SMA,30)
+    .AddIndicator(Indicators.SMA,50)
+    .AddIndicator(Indicators.SMA,90)
+    .AddIndicator(Indicators.MACD,12,26,9)
+    .AddIndicator(Indicators.MACD_SIGNAL)
+    .AddIndicator(Indicators.RSI).ReturnApiData();
 
 //var datamodel=StockAPI.Instance()
 //    .GetStockData("QQQ")
@@ -37,6 +46,11 @@ var datamodel = stockApi.GetStockData("QQQ").ReturnApiData();
 double[] xs = datamodel.xAxis.Select(tds => tds.ToOADate()).ToArray();
 double[] ys = datamodel.yValues.ToArray();
 
-DataPlotter.Instance(xs, ys).Plot();
+//DataPlotter.Instance(xs, ys).Plot();
+var plotter=DataPlotter.Instance(xs, ys);
+
+datamodel.IndicatorsList.ToList().ForEach(indicator=>plotter.AddScatter(indicator.Value.ToArray()));
+
+plotter.Plot();
 
 Console.WriteLine("THE END");
