@@ -18,7 +18,8 @@ namespace ApiChecker.DataProcessing
         MACD_SIGNAL,
         MACD_HISTOGRAM,
         MACD_SLOW_EMA,
-        MACD_FAST_EMA
+        MACD_FAST_EMA,
+        EMA
     }
     public static class StockIndicators
     {
@@ -28,10 +29,30 @@ namespace ApiChecker.DataProcessing
                 { Indicators.SMA,SMA},
                 { Indicators.RSI,RSI},
                 { Indicators.MACD,MACD},
-                { Indicators.MACD_SIGNAL,MACD_SIGNAL}
+                { Indicators.MACD_SIGNAL,MACD_SIGNAL},
+                { Indicators.EMA,EMA}
             };
 
         private static IEnumerable<MacdResult>? _macdResult {get; set;} =null;
+
+        private static List<double> EMA(IEnumerable<StockModel> stockModel, params int[] param)
+        {
+            var parameter = 30;
+            if (param.Length != 0)
+            {
+                parameter = param[0];
+            }
+            var sma = stockModel.GetEma(parameter).Reverse();
+
+            List<double> smaValues = sma.Select(v => {
+
+                if (v.Ema == null) { return Double.NaN; }
+                return Convert.ToDouble(v.Ema);
+
+            }).ToList();
+
+            return smaValues;
+        }
         private static List<double> SMA(IEnumerable<StockModel> stockModel, params int[] param )
         {
             var parameter = 30;

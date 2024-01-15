@@ -29,10 +29,10 @@ var stockApi = conteiner.Resolve<IStockAPI>();
 
 //var datamodel = stockApi.GetStockData("QQQ").ReturnApiData();
 var datamodel = stockApi.GetStockData("QQQ",startDay:"2004-04-04")
-    .AddIndicator(Indicators.SMA,7)
-    .AddIndicator(Indicators.SMA,30)
-    .AddIndicator(Indicators.SMA,50)
-    .AddIndicator(Indicators.SMA,90)
+    .AddIndicator(Indicators.EMA,7)
+    .AddIndicator(Indicators.EMA,30)
+    .AddIndicator(Indicators.EMA,90)
+    .AddIndicator(Indicators.EMA,180)
     .AddIndicator(Indicators.MACD,12,26,9)
     .AddIndicator(Indicators.MACD_SIGNAL)
     .AddIndicator(Indicators.RSI).ReturnApiData();
