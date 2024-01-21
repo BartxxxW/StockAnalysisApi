@@ -47,19 +47,38 @@ namespace ApiChecker.InvestingStrategies
                 int allMonths = 12 * years - i * intervalsMonths;
                 int power = allMonths / 12;
                 int modPart = allMonths % 12;
-                var iresult = paymentsList[i] * Math.Pow((1.d() + percent.d() / 100.d()).d(), power.d());
+
+                double partToRaise= 1.d() + percent.d() / 100.d();
+                var iresult = paymentsList[i] * Math.Pow(partToRaise, power.d());
                 double iModGain = 0;
 
                 if (modPart>0)
                 {
-                    int lastYearMonths = 12 - modPart;
-                    double yearPart = lastYearMonths.d() / 12.d();
+                    //int lastYearMonths = 12 - modPart;
+                    double yearPart = modPart.d() / 12.d();
                     iModGain = iresult.d() * (percent.d() / 100.d()).d() * yearPart;
                 }
 
                 var cResult = iresult + iModGain;
                 resultMoneyList.Add(cResult);
             }
+
+
+            for ( int i = 0;i < paymentsList.Count;i++)
+            {
+                Console.WriteLine($"id:{i}  payment:{paymentsList[i]}  resut After Years:{resultMoneyList[i]}");
+            }
+
+
+
+            var paidMoney = paymentsList.Sum();
+            var gainedMoney = resultMoneyList.Sum();
+
+            Console.WriteLine($" total paid money:{paidMoney}  total gainedMoney:{gainedMoney}");
+
+
+
+
             // sum Up all moneys from resultMoneyList
             //test this method
 

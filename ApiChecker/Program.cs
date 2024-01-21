@@ -1,10 +1,17 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using ApiChecker;
 using ApiChecker.DataProcessing;
+using ApiChecker.InvestingStrategies;
 using ApiChecker.PresentationLayer;
 using ApiChecker.RequestStockData;
 using ApiChecker.Services;
 using Autofac;
+
+Console.WriteLine("Check bonds Calculation");
+
+var bonds = new Bonds();
+
+bonds.Simulate(4, 5, 100, 100, 2);
 
 Console.WriteLine("Hello, World!");
 
