@@ -11,7 +11,7 @@ Console.WriteLine("Check bonds Calculation");
 
 var bonds = new Bonds();
 
-bonds.Simulate(4, 5, 100, 100, 2);
+bonds.Simulate(7, 4, 4000, 4000, 20);
 
 Console.WriteLine("Hello, World!");
 
