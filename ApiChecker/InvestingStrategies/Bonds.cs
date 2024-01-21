@@ -19,7 +19,7 @@ namespace ApiChecker.InvestingStrategies
     }
     public class Bonds: IStrategy
     {
-
+        //to develop : int years shoudl be also  in double as a part
         public double Simulate(double percent, int intervalsMonths, double startMoney, double intervalMoney, int years, bool taxIncluded=false)
         {
             double result = 0;
