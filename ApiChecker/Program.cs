@@ -11,7 +11,7 @@ Console.WriteLine("Check bonds Calculation");
 
 var bonds = new Bonds();
 
-bonds.Simulate(7, 4, 4000, 4000, 20);
+bonds.Simulate(7, 4, 1000, 1000, 7);
 
 Console.WriteLine("Hello, World!");
 
@@ -48,6 +48,17 @@ var datamodel = stockApi.GetStockData("QQQ",startDay:"2004-04-04")
 //    .GetStockData("QQQ")
 //    .ReturnApiData();
 
+
+var wb= new WarrenBuffet();
+
+// whe end resut =0? hhow many invested / how many end the end / why displayed all simulation with bonds?
+wb.Simulate("15-01-2004", "15-01-2011", 1000, 1000,4, datamodel.StockPrices);
+//var filtredStockPrices =  datamodel.StockPrices.OrderBy(k => k.Key).Where(k => (k.Key >= DateTime.Parse("01-01-2024") && k.Key <= DateTime.Parse("21-01-2024"))).ToList();
+
+//Console.WriteLine($"start  position : {filtredStockPrices[0].Key} :{filtredStockPrices[0].Value} ");
+//Console.WriteLine($"start  position : {filtredStockPrices.Last().Key} :{filtredStockPrices.Last().Value} ");
+//Console.WriteLine("   ---------       ");
+//filtredStockPrices.ForEach(i => Console.WriteLine($"start  position : {i.Key} :{i.Value} "));
 
 // plot first chsrt in that way
 double[] xs = datamodel.xAxis.Select(tds => tds.ToOADate()).ToArray();
