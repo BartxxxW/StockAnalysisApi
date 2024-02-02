@@ -10,7 +10,7 @@ namespace ApiChecker
         IRequests Requests { get; set; }
         List<StockModel> StockData { get; set; }
 
-        IStockActions AddIndicator(Indicators indicator, params int[] param);
+        IStockActions AddIndicator(string indicator, params int[] param);
         IStockActions GetStockData(string StockSymbol, Sources sources = Sources.AlphaVintage, TimeSeries timeSeries = TimeSeries.Daily, string startDay = "", string endDay = "");
         ProcessedStockDataModel ReturnApiData();
     }

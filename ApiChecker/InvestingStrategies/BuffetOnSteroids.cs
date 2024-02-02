@@ -8,27 +8,31 @@ using System.Threading.Tasks;
 
 namespace ApiChecker.InvestingStrategies
 {
-    public class StockToken
-    {
-        public StockToken()
-        {
-                
-        }
-        public StockToken(double price, DateTime date)
-        {
-            Price = price;
-            Date = date;
-        }
 
-        public double Price { get; set; }
-        public DateTime Date { get; set; }
-    }
-    public class WarrenBuffet : IStrategy
+    public class BuffetOnSteroids : IStrategy
     {
         //to develop : Stock Prices as TOkens LIst or Dictionary
         public double Simulate(string startDate, string endDate,double startMoneyUSD, double intervalMoneyUSD, int intervalMonths, List<KeyValuePair<DateTime, double>> stockPricesUSD, bool taxIncluded = false)
         {
             double result = 0;
+            // badanie zmiennosci cen => kluczeoe do wybrania  bazowego wskaznika
+            // check volatility  in recend 10 /30 days => if  higher or lower => adjust emaPriod as a base signal to entry /close decision
+            // checking last crossed price => if similar 1%  volatility => do not change tactic and wait 
+            // emas/ sma shoudl be parallel in slopes to   ema7
+            // or support wim MACD
+
+            // idea is :
+            // 1. Get indicators
+            // 2. simple complexity - just EMA for S&P500 example back tesing
+            // when ema 7 and ema 180 is crossed => take actions:
+            // (ema180 3days before < ema7 3 days before ) &&  (ema180 3days after > ema7 3 days after ) => sell => check  gain/loss result => with date( or without)
+            // (ema180 3days before > ema7 3 days before ) &&  (ema180 3days after < ema7 3 days after ) => BUY 
+            // alternative to previous 2:
+            // (ema180 3days after > ema7 3 days after ) => sell => check  gain/loss result => with date( or without)
+            // (ema180 3days after < ema7 3 days after ) => BUY 
+            // if (ema180 < ema 7) => keep buying
+            // if (ema180 < ema 7) => dont buy or  sell if  you have something already bought
+            // on last date sell with end date price => sumUp gains/loss  and substract  Taxtes ( 19 proce from  each registred sell gain)
 
 
             List<KeyValuePair<double,StockToken>> boughtTokens=new List<KeyValuePair<double, StockToken>>();

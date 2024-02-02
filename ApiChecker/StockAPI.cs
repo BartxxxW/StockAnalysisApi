@@ -19,7 +19,7 @@ namespace ApiChecker
     }
     public interface IStockActions
     {
-        IStockActions AddIndicator(Indicators indicator, params int[] param);
+        IStockActions AddIndicator(string indicator, params int[] param);
         ProcessedStockDataModel ReturnApiData();
     }
     public class StockAPI : IGetStockData, IStockActions, IStockAPI
@@ -33,7 +33,7 @@ namespace ApiChecker
 
         public IStockActions GetStockData(string StockSymbol, Sources sources = Sources.AlphaVintage, TimeSeries timeSeries = TimeSeries.Daily, string startDay = "", string endDay = "")
         {
-
+            //here try get from db
             var stockModel = _servicesResolver.GetService(sources).Action(StockSymbol, timeSeries);
 
 
@@ -51,9 +51,9 @@ namespace ApiChecker
             return this;
         }
 
-        public IStockActions AddIndicator(Indicators indicator, params int[] param )
+        public IStockActions AddIndicator(string indicator, params int[] param )
         {
-            ProcessedStockDataModel.IndicatorsList.Add(nameof(indicator) +DateTime.Now.Ticks.ToString(), StockData.GetIndicator(indicator, param));
+            ProcessedStockDataModel.IndicatorsList.Add(indicator +DateTime.Now.Ticks.ToString(), StockData.GetIndicator(indicator, param));
             return this;
         }
 

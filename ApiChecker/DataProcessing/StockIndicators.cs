@@ -10,21 +10,33 @@ using System.Threading.Tasks;
 
 namespace ApiChecker.DataProcessing
 {
-    public enum Indicators
+    //public enum Indicators
+    //{
+    //    SMA,
+    //    RSI,
+    //    MACD,
+    //    MACD_SIGNAL,
+    //    MACD_HISTOGRAM,
+    //    MACD_SLOW_EMA,
+    //    MACD_FAST_EMA,
+    //    EMA
+    //}
+    public static class Indicators
     {
-        SMA,
-        RSI,
-        MACD,
-        MACD_SIGNAL,
-        MACD_HISTOGRAM,
-        MACD_SLOW_EMA,
-        MACD_FAST_EMA,
-        EMA
+        public const string SMA = "SMA";
+        public const string RSI = "RSI";
+        public const string MACD = "MACD";
+        public const string MACD_SIGNAL = "MACD_SIGNAL";
+        public const string MACD_HISTOGRAM = "MACD_HISTOGRAM";
+        public const string MACD_SLOW_EMA = "MACD_SLOW_EMA";
+        public const string MACD_FAST_EMA = "MACD_FAST_EMA";
+        public const string EMA = "EMA";
     }
+
     public static class StockIndicators
     {
-        private static Dictionary<Indicators, Func<IEnumerable<StockModel>,int[],List<double>>> CallIndicator =
-            new Dictionary<Indicators, Func<IEnumerable<StockModel>, int[], List<double>>>
+        private static Dictionary<string, Func<IEnumerable<StockModel>,int[],List<double>>> CallIndicator =
+            new Dictionary<string, Func<IEnumerable<StockModel>, int[], List<double>>>
             {
                 { Indicators.SMA,SMA},
                 { Indicators.RSI,RSI},
@@ -131,7 +143,7 @@ namespace ApiChecker.DataProcessing
 
 
 
-        public static List<double> GetIndicator(this IEnumerable<StockModel> stockModel,Indicators indicator, params int[] param)
+        public static List<double> GetIndicator(this IEnumerable<StockModel> stockModel,string indicator, params int[] param)
         {
             return CallIndicator[indicator](stockModel,param);
         }
