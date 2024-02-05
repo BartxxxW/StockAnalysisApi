@@ -1,4 +1,5 @@
 ﻿using ApiChecker.DataProcessing;
+using ApiChecker.Entities;
 using ApiChecker.Models;
 using ApiChecker.RequestStockData;
 using ApiChecker.Services;
@@ -34,8 +35,14 @@ namespace ApiChecker
         public IStockActions GetStockData(string StockSymbol, Sources sources = Sources.AlphaVintage, TimeSeries timeSeries = TimeSeries.Daily, string startDay = "", string endDay = "")
         {
             //here try get from db
-            var stockModel = _servicesResolver.GetService(sources).Action(StockSymbol, timeSeries);
-
+            //var stockModel = _servicesResolver.GetService(sources).Action(StockSymbol, timeSeries);
+            //var stockListToSave=stockModel.Select(s=>s.ConvertToStockDto().WithName(StockSymbol)).ToList();
+            //_dbContext.AddRange(stockListToSave);
+            //_dbContext.SaveChanges();
+            // get from db 
+            var dbData=_dbContext.Stocks.Where(s=>s.Name.Equals(StockSymbol));
+            var stockModel = dbData.Select(s => s.ConvertToStockModel()) as IEnumerable<StockModel>;
+            // save range / clear range
 
             if (startDay != "")
                 stockModel = stockModel.Where(s => s.Date > DateTime.Parse(startDay));
@@ -63,12 +70,15 @@ namespace ApiChecker
         }
 
         //public static IGetStockData Instance(IRequests requestSource) => new StockAPI(requestSource);
-        public static IGetStockData Instance(IServicesResolver servicesResolver) => new StockAPI(servicesResolver);
-        public StockAPI(IServicesResolver servicesResolver)
+        public static IGetStockData Instance(IServicesResolver servicesResolver, StockDbContext stockDbContext) 
+            => new StockAPI(servicesResolver,stockDbContext);
+        public StockAPI(IServicesResolver servicesResolver,StockDbContext stockDbContext)
         {
             _servicesResolver = servicesResolver;
+            _dbContext = stockDbContext;
         }
 
         private IServicesResolver _servicesResolver;
+        private StockDbContext _dbContext;
     }
 }

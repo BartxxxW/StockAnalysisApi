@@ -1,11 +1,35 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using ApiChecker;
 using ApiChecker.DataProcessing;
+using ApiChecker.Entities;
 using ApiChecker.InvestingStrategies;
 using ApiChecker.PresentationLayer;
 using ApiChecker.RequestStockData;
 using ApiChecker.Services;
 using Autofac;
+using Microsoft.EntityFrameworkCore;
+using System.Data.Entity;
+
+//check this ?
+//var nextbuilder= new ContainerBuilder();
+//nextbuilder.Register(c => new DbContextOptionsBuilder<StockDbContext>()
+//                    .UseSqlServer("Server=BARTEK;Database=Stocks;Integrated Security=True;TrustServerCertificate=True;")
+//                    .Options)
+//                .SingleInstance();
+//nextbuilder.RegisterType<StockDbContext>()
+//               .AsSelf()
+//               .InstancePerLifetimeScope();
+
+//var nextConteiner = nextbuilder.Build();
+
+//var dbContext = nextConteiner.Resolve<StockDbContext>();
+
+//dbContext.Database.EnsureCreated();
+
+//dbContext.Stocks.Add(new StockDto() { Close = 1000, Name = "Testing" });
+//dbContext.SaveChanges();
+
+
 
 Console.WriteLine("Check bonds Calculation");
 
@@ -25,6 +49,13 @@ aV.Check();
 
 var builder = new ContainerBuilder();
 
+builder.Register(c => new DbContextOptionsBuilder<StockDbContext>()
+                    .UseSqlServer("Server=BARTEK;Database=Stocks;Integrated Security=True;TrustServerCertificate=True;")
+                    .Options)
+                .SingleInstance();
+builder.RegisterType<StockDbContext>()
+               .AsSelf()
+               .InstancePerLifetimeScope();
 builder.RegisterType<RequestAV>().As<IRequests>();
 builder.RegisterType<AlphaVintageService>().As<IAlphaVintageService>();
 builder.RegisterType<ServicesResolver>().As<IServicesResolver>();
@@ -35,6 +66,7 @@ var conteiner = builder.Build();
 var stockApi = conteiner.Resolve<IStockAPI>();
 
 //var datamodel = stockApi.GetStockData("QQQ").ReturnApiData(); //SPY etc
+// for now just modificator bool update
 var datamodel = stockApi.GetStockData("SPY",startDay:"1997-04-04")
     .AddIndicator(Indicators.EMA,7)
     .AddIndicator(Indicators.EMA,30)
