@@ -10,26 +10,6 @@ using Autofac;
 using Microsoft.EntityFrameworkCore;
 using System.Data.Entity;
 
-//check this ?
-//var nextbuilder= new ContainerBuilder();
-//nextbuilder.Register(c => new DbContextOptionsBuilder<StockDbContext>()
-//                    .UseSqlServer("Server=BARTEK;Database=Stocks;Integrated Security=True;TrustServerCertificate=True;")
-//                    .Options)
-//                .SingleInstance();
-//nextbuilder.RegisterType<StockDbContext>()
-//               .AsSelf()
-//               .InstancePerLifetimeScope();
-
-//var nextConteiner = nextbuilder.Build();
-
-//var dbContext = nextConteiner.Resolve<StockDbContext>();
-
-//dbContext.Database.EnsureCreated();
-
-//dbContext.Stocks.Add(new StockDto() { Close = 1000, Name = "Testing" });
-//dbContext.SaveChanges();
-
-
 
 Console.WriteLine("Check bonds Calculation");
 
@@ -43,9 +23,9 @@ Console.WriteLine("Hello, World!");
 
 //ask.TestServiceApi();
 
-var aV = new AlphaVintagrPoc();
+//var aV = new AlphaVintagrPoc();
 
-aV.Check();
+//aV.Check();
 
 var builder = new ContainerBuilder();
 
@@ -63,7 +43,10 @@ builder.RegisterType<StockAPI>().As<IStockAPI>();
 
 var conteiner = builder.Build();
 
+
 var stockApi = conteiner.Resolve<IStockAPI>();
+var dbContext = conteiner.Resolve<StockDbContext>();
+dbContext.Database.EnsureCreated();
 
 //var datamodel = stockApi.GetStockData("QQQ").ReturnApiData(); //SPY etc
 // for now just modificator bool update
