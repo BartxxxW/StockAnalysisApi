@@ -21,6 +21,8 @@ namespace ApiChecker.PresentationLayer
             yBase=yValues;
             Plt.AddScatter(xAxis, yValues);
             Plt.XAxis.DateTimeFormat(true);
+            Plt.AddHorizontalLine(70);
+            Plt.AddHorizontalLine(30);
         }
         public void Plot(string chartName="chart")
         {

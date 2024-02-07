@@ -17,6 +17,7 @@ namespace ApiChecker.InvestingStrategies
         //to develop : Stock Prices as TOkens LIst or Dictionary
         // invest every 4 months but be vigilant with  market chenges
         //loss or gains on the end of year should be counted
+        // 21/(60)/180
         public double Simulate(ProcessedStockDataModel dataModel,string startDate, string endDate,double startMoneyUSD, double intervalMoneyUSD, int intervalMonths, List<KeyValuePair<DateTime, double>> stockPricesUSD, bool taxIncluded = false)
         {
             List<KeyValuePair<double, StockToken>> boughtTokens = new List<KeyValuePair<double, StockToken>>();

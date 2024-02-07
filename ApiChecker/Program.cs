@@ -51,13 +51,18 @@ dbContext.Database.EnsureCreated();
 //var datamodel = stockApi.GetStockData("QQQ").ReturnApiData(); //SPY etc
 // for now just modificator bool update
 var datamodel = stockApi.GetStockData("SPY",startDay:"1997-04-04")
-    .AddIndicator(Indicators.EMA,7)
-    .AddIndicator(Indicators.EMA,30)
+    //.AddIndicator(Indicators.EMA,7)
+    .AddIndicator(Indicators.EMA,45)
+    //.AddIndicator(Indicators.EMA,23)
+    //.AddIndicator(Indicators.EMA,30)
     .AddIndicator(Indicators.EMA,90)
-    .AddIndicator(Indicators.EMA,180)
+    //.AddIndicator(Indicators.EMA,90)
+    .AddIndicator(Indicators.EMA, 120)
+    .AddIndicator(Indicators.SMA, 80)
+    //.AddIndicator(Indicators.EMA,180)
     .AddIndicator(Indicators.MACD,12,26,9)
     .AddIndicator(Indicators.MACD_SIGNAL)
-    .AddIndicator(Indicators.RSI,90).ReturnApiData();
+    .AddIndicator(Indicators.RSI,14).ReturnApiData();
 
 //var datamodel=StockAPI.Instance()
 //    .GetStockData("QQQ")
