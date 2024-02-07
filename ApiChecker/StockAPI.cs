@@ -60,7 +60,11 @@ namespace ApiChecker
 
         public IStockActions AddIndicator(string indicator, params int[] param )
         {
-            ProcessedStockDataModel.IndicatorsList.Add(indicator +DateTime.Now.Ticks.ToString(), StockData.GetIndicator(indicator, param));
+            string paramMod = "_";
+            if (param.Length > 0)
+                paramMod = param[0].ToString();
+
+            ProcessedStockDataModel.IndicatorsList.Add(indicator + paramMod, StockData.GetIndicator(indicator, param));
             return this;
         }
 

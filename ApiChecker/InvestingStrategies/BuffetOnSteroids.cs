@@ -1,4 +1,7 @@
-﻿using ApiChecker.ToolBox;
+﻿using ApiChecker.Models;
+using ApiChecker.ToolBox;
+using Newtonsoft.Json.Linq;
+using ScottPlot.Renderable;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,9 +15,33 @@ namespace ApiChecker.InvestingStrategies
     public class BuffetOnSteroids : IStrategy
     {
         //to develop : Stock Prices as TOkens LIst or Dictionary
-        public double Simulate(string startDate, string endDate,double startMoneyUSD, double intervalMoneyUSD, int intervalMonths, List<KeyValuePair<DateTime, double>> stockPricesUSD, bool taxIncluded = false)
+        public double Simulate(ProcessedStockDataModel dataModel,string startDate, string endDate,double startMoneyUSD, double intervalMoneyUSD, int intervalMonths, List<KeyValuePair<DateTime, double>> stockPricesUSD, bool taxIncluded = false)
         {
+            List<KeyValuePair<double, StockToken>> boughtTokens = new List<KeyValuePair<double, StockToken>>();
             double result = 0;
+            double moneyToInvest = 0;
+            moneyToInvest += startMoneyUSD;
+
+            List<KeyValuePair<DateTime,double>> i7 = dataModel.xAxis.Zip(dataModel.IndicatorsList["EMA7"], (x, v) => new KeyValuePair<DateTime, double>(x, v)).ToList();
+            List<KeyValuePair<DateTime,double>> i180 = dataModel.xAxis.Zip(dataModel.IndicatorsList["EMA180"], (x, v) => new KeyValuePair<DateTime, double>(x, v)).ToList();
+
+            double rateUSD_PLN = 1;
+            var filteredStockPrices = stockPricesUSD.OrderBy(k => k.Key).Where(k => k.Key.Date >= DateTime.Parse(startDate).Date && k.Key.Date <= DateTime.Parse(endDate).Date).ToList();
+
+            if (i180.Where(i => i.Key == filteredStockPrices[0].Key).FirstOrDefault().Value < i7.Where(i => i.Key == filteredStockPrices[0].Key).FirstOrDefault().Value)
+            {
+                double numberOfTokens = moneyToInvest / (filteredStockPrices[0].Value * rateUSD_PLN);
+                boughtTokens.Add(new KeyValuePair<double, StockToken>(numberOfTokens, new StockToken(filteredStockPrices[0].Value, filteredStockPrices[0].Key)));
+                moneyToInvest = 0;
+            }
+
+            //while loop {} => iterate through dates  => according to algorithm buy or sell  +  be vigilant for signals from market i7=i180 +3 days => sum up all gains -  19 %
+            //use money to invest as modyficator when sell ( full) wneh buy => empty
+
+
+            // buystoc() => with checking if shoud be bought if invested - then money to invest eqal 0
+            // sell => gains to gains/ bought cleared / money to invest 9 after sell)
+
             // badanie zmiennosci cen => kluczeoe do wybrania  bazowego wskaznika
             // check volatility  in recend 10 /30 days => if  higher or lower => adjust emaPriod as a base signal to entry /close decision
             // checking last crossed price => if similar 1%  volatility => do not change tactic and wait 
@@ -35,20 +62,21 @@ namespace ApiChecker.InvestingStrategies
             // on last date sell with end date price => sumUp gains/loss  and substract  Taxtes ( 19 proce from  each registred sell gain)
 
 
-            List<KeyValuePair<double,StockToken>> boughtTokens=new List<KeyValuePair<double, StockToken>>();
+            //List<KeyValuePair<double,StockToken>> boughtTokens=new List<KeyValuePair<double, StockToken>>();
 
             //stockPrices order by date
             //filter by date
-            double rateUSD_PLN = 1;
-            var filteredStockPrices = stockPricesUSD.OrderBy(k => k.Key).Where(k => k.Key.Date >= DateTime.Parse(startDate).Date && k.Key.Date <= DateTime.Parse(endDate).Date).ToList();
+            //double rateUSD_PLN = 1;
+            //var filteredStockPrices = stockPricesUSD.OrderBy(k => k.Key).Where(k => k.Key.Date >= DateTime.Parse(startDate).Date && k.Key.Date <= DateTime.Parse(endDate).Date).ToList();
 
-            double numberOfTokens = startMoneyUSD / (filteredStockPrices[0].Value*rateUSD_PLN);
+            //double numberOfTokens = startMoneyUSD / (filteredStockPrices[0].Value*rateUSD_PLN);
 
-            boughtTokens.Add(new KeyValuePair<double, StockToken>(numberOfTokens, new StockToken(filteredStockPrices[0].Value, filteredStockPrices[0].Key)));
+            //boughtTokens.Add(new KeyValuePair<double, StockToken>(numberOfTokens, new StockToken(filteredStockPrices[0].Value, filteredStockPrices[0].Key)));
 
             var checkData = filteredStockPrices[0].Key.AddMonths(intervalMonths);
 
-            while(checkData<=DateTime.Parse(endDate))
+            double numberOfTokens;
+            while (checkData<=DateTime.Parse(endDate))
             {
                 var rangeData = checkData.AddDays(5);
                 var stockPrice= filteredStockPrices.Where(s=>(s.Key>= checkData && s.Key< rangeData)).FirstOrDefault();
