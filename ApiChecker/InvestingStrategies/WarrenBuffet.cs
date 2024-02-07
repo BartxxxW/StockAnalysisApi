@@ -8,6 +8,25 @@ using System.Threading.Tasks;
 
 namespace ApiChecker.InvestingStrategies
 {
+    public class ClosedStockToken
+    {
+        public ClosedStockToken()
+        {
+
+        }
+        public ClosedStockToken(double price, DateTime date,double closePrice,DateTime closeDate)
+        {
+            Price = price;
+            Date = date;
+            ClosedDate = closeDate;
+            ClosedPrice = closePrice;
+        }
+
+        public double Price { get; set; }
+        public double ClosedPrice { get; set; }
+        public DateTime Date { get; set; }
+        public DateTime ClosedDate { get; set; }
+    }
     public class StockToken
     {
         public StockToken()

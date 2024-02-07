@@ -15,9 +15,12 @@ namespace ApiChecker.InvestingStrategies
     public class BuffetOnSteroids : IStrategy
     {
         //to develop : Stock Prices as TOkens LIst or Dictionary
+        // invest every 4 months but be vigilant with  market chenges
+        //loss or gains on the end of year should be counted
         public double Simulate(ProcessedStockDataModel dataModel,string startDate, string endDate,double startMoneyUSD, double intervalMoneyUSD, int intervalMonths, List<KeyValuePair<DateTime, double>> stockPricesUSD, bool taxIncluded = false)
         {
             List<KeyValuePair<double, StockToken>> boughtTokens = new List<KeyValuePair<double, StockToken>>();
+            List<KeyValuePair<double, ClosedStockToken>> closedTokens = new List<KeyValuePair<double, ClosedStockToken>>();
             double result = 0;
             double moneyToInvest = 0;
             moneyToInvest += startMoneyUSD;
@@ -28,10 +31,33 @@ namespace ApiChecker.InvestingStrategies
             double rateUSD_PLN = 1;
             var filteredStockPrices = stockPricesUSD.OrderBy(k => k.Key).Where(k => k.Key.Date >= DateTime.Parse(startDate).Date && k.Key.Date <= DateTime.Parse(endDate).Date).ToList();
 
-            if (i180.Where(i => i.Key == filteredStockPrices[0].Key).FirstOrDefault().Value < i7.Where(i => i.Key == filteredStockPrices[0].Key).FirstOrDefault().Value)
+            var investDay = DateTime.Parse(startDate);
+            var i7Value = i7.Where(i => i.Key >= investDay && i.Key<investDay.AddDays(3)).FirstOrDefault().Value;
+            var i180Value = i180.Where(i => i.Key >= investDay && i.Key < investDay.AddDays(3)).FirstOrDefault().Value;
+
+            if (i180Value < i7Value)
             {
-                double numberOfTokens = moneyToInvest / (filteredStockPrices[0].Value * rateUSD_PLN);
-                boughtTokens.Add(new KeyValuePair<double, StockToken>(numberOfTokens, new StockToken(filteredStockPrices[0].Value, filteredStockPrices[0].Key)));
+                double numberOfTokens2 = moneyToInvest / (filteredStockPrices[0].Value * rateUSD_PLN);
+                boughtTokens.Add(new KeyValuePair<double, StockToken>(numberOfTokens2, new StockToken(filteredStockPrices[0].Value, filteredStockPrices[0].Key)));
+                moneyToInvest = 0;
+            }
+            if (i180Value > i7Value)
+            {
+                double numberOfBoughtTokensIN = boughtTokens.Select(t => t.Key).Sum();
+
+                var sellDate = i7.Where(i => i.Key >= investDay && i.Key < investDay.AddDays(3)).FirstOrDefault().Key; // to replace with end date value
+                double priceAtSellDateIn = filteredStockPrices.Where(s => s.Key >= sellDate && s.Key <= sellDate.AddDays(4)).FirstOrDefault().Value;
+                closedTokens.AddRange(boughtTokens.Select(t=>new KeyValuePair<double, ClosedStockToken>(t.Key,t.Value.ConvertToClosedStockToken(priceAtSellDateIn, sellDate))));
+                boughtTokens.Clear();
+
+                moneyToInvest = numberOfBoughtTokensIN * priceAtSellDateIn;
+            }
+
+            if (i180Value == i7Value)
+            {
+                // signal => what will happen in next 3 days
+                double numberOfTokens2 = moneyToInvest / (filteredStockPrices[0].Value * rateUSD_PLN);
+                boughtTokens.Add(new KeyValuePair<double, StockToken>(numberOfTokens2, new StockToken(filteredStockPrices[0].Value, filteredStockPrices[0].Key)));
                 moneyToInvest = 0;
             }
 
@@ -106,8 +132,6 @@ namespace ApiChecker.InvestingStrategies
             var dt_EndDate= filteredStockPrices.Last().Key.Date;
             var endRange= dt_EndDate.AddDays(5);
             double priceAtSellDate = filteredStockPrices.Where(s => s.Key >= dt_EndDate && s.Key <=endRange).FirstOrDefault().Value;
-
-            //boughtTokens.ForEach(t => Console.WriteLine($" date : {t.Value.Date}  , price : {t.Value.Price}"));
 
             result = numberOfBoughtTokens * priceAtSellDate;
 

@@ -1,4 +1,5 @@
 ﻿using ApiChecker.Entities;
+using ApiChecker.InvestingStrategies;
 using ApiChecker.JsonModels;
 using ApiChecker.SkendorStockModels;
 using System;
@@ -43,6 +44,16 @@ namespace ApiChecker.ToolBox
             sm.Close = tds.Close;
             sm.Volume = tds.Volume;
             return sm;
+        }
+        public static ClosedStockToken ConvertToClosedStockToken(this StockToken tds, double ClosedPrice, DateTime ClosedDate) 
+        {
+            var cst = new ClosedStockToken();
+            cst.Date = tds.Date;
+            cst.Price = tds.Price;
+            cst.ClosedPrice = ClosedPrice;
+            cst.ClosedDate = ClosedDate;
+
+            return cst;
         }
     }
 }
