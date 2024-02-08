@@ -26,6 +26,7 @@ namespace ApiChecker.InvestingStrategies
         public List<DateTime> datesToBuy = new List<DateTime>();
         public List<KeyValuePair<DateTime,double>> filteredStockPrices { get;set;}
         public double moneyToInvest = 0;
+        //sell/ buy as stock behaviours
         public void TakeAction()
         {
             if (i180Value < i7Value)
