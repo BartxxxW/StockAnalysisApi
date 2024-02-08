@@ -1,4 +1,5 @@
-﻿using ApiChecker.Models;
+﻿using ApiChecker.Extensions;
+using ApiChecker.Models;
 using ApiChecker.ToolBox;
 using Newtonsoft.Json.Linq;
 using ScottPlot.Renderable;
@@ -28,13 +29,21 @@ namespace ApiChecker.InvestingStrategies
 
             List<KeyValuePair<DateTime,double>> i7 = dataModel.xAxis.Zip(dataModel.IndicatorsList["EMA7"], (x, v) => new KeyValuePair<DateTime, double>(x, v)).ToList();
             List<KeyValuePair<DateTime,double>> i180 = dataModel.xAxis.Zip(dataModel.IndicatorsList["EMA180"], (x, v) => new KeyValuePair<DateTime, double>(x, v)).ToList();
+            List<DateTime> datesToBuy = new List<DateTime>();
+            var nextDate=DateTime.Parse(startDate).AddMonths(intervalMonths);
+            while (nextDate <= DateTime.Parse(endDate))
+            {
+                datesToBuy.Add(nextDate);
+                nextDate.AddMonths(intervalMonths);
+            }
 
             double rateUSD_PLN = 1;
             var filteredStockPrices = stockPricesUSD.OrderBy(k => k.Key).Where(k => k.Key.Date >= DateTime.Parse(startDate).Date && k.Key.Date <= DateTime.Parse(endDate).Date).ToList();
 
+            var dt_EndDate = filteredStockPrices.Last().Key.Date;
             var investDay = DateTime.Parse(startDate);
-            var i7Value = i7.Where(i => i.Key >= investDay && i.Key<investDay.AddDays(3)).FirstOrDefault().Value;
-            var i180Value = i180.Where(i => i.Key >= investDay && i.Key < investDay.AddDays(3)).FirstOrDefault().Value;
+            var i7Value = i7.GetIndicatorValue(investDay);
+            var i180Value = i180.GetIndicatorValue(investDay);
 
             if (i180Value < i7Value)
             {
@@ -62,45 +71,66 @@ namespace ApiChecker.InvestingStrategies
                 moneyToInvest = 0;
             }
 
-            //while loop {} => iterate through dates  => according to algorithm buy or sell  +  be vigilant for signals from market i7=i180 +3 days => sum up all gains -  19 %
-            //use money to invest as modyficator when sell ( full) wneh buy => empty
+            
+            var DayInLoop = DateTime.Parse(startDate).AddDays(1);
+            if (boughtTokens.Count > 0)
+                DayInLoop = boughtTokens[0].Value.Date;
+
+            while(DayInLoop<= dt_EndDate)
+            {
+                // decision when indicators are EQUAL or it is IntervalDay to invest 
+                var iSmall= i7.GetIndicatorValue(DayInLoop);
+                var iLarge= i180.GetIndicatorValue(DayInLoop);
+
+                if (iSmall==iLarge || datesToBuy.Contains(DayInLoop))
+                {
+                    // market action
+                }
+
+                DayInLoop.AddDays(1);
+
+            }
 
 
-            // buystoc() => with checking if shoud be bought if invested - then money to invest eqal 0
-            // sell => gains to gains/ bought cleared / money to invest 9 after sell)
-
-            // badanie zmiennosci cen => kluczeoe do wybrania  bazowego wskaznika
-            // check volatility  in recend 10 /30 days => if  higher or lower => adjust emaPriod as a base signal to entry /close decision
-            // checking last crossed price => if similar 1%  volatility => do not change tactic and wait 
-            // emas/ sma shoudl be parallel in slopes to   ema7
-            // or support wim MACD
-
-            // idea is :
-            // 1. Get indicators
-            // 2. simple complexity - just EMA for S&P500 example back tesing
-            // when ema 7 and ema 180 is crossed => take actions:
-            // (ema180 3days before < ema7 3 days before ) &&  (ema180 3days after > ema7 3 days after ) => sell => check  gain/loss result => with date( or without)
-            // (ema180 3days before > ema7 3 days before ) &&  (ema180 3days after < ema7 3 days after ) => BUY 
-            // alternative to previous 2:
-            // (ema180 3days after > ema7 3 days after ) => sell => check  gain/loss result => with date( or without)
-            // (ema180 3days after < ema7 3 days after ) => BUY 
-            // if (ema180 < ema 7) => keep buying
-            // if (ema180 < ema 7) => dont buy or  sell if  you have something already bought
-            // on last date sell with end date price => sumUp gains/loss  and substract  Taxtes ( 19 proce from  each registred sell gain)
+                //while loop {} => iterate through dates  => according to algorithm buy or sell  +  be vigilant for signals from market i7=i180 +3 days => sum up all gains -  19 %
+                //use money to invest as modyficator when sell ( full) wneh buy => empty
 
 
-            //List<KeyValuePair<double,StockToken>> boughtTokens=new List<KeyValuePair<double, StockToken>>();
+                // buystoc() => with checking if shoud be bought if invested - then money to invest eqal 0
+                // sell => gains to gains/ bought cleared / money to invest 9 after sell)
 
-            //stockPrices order by date
-            //filter by date
-            //double rateUSD_PLN = 1;
-            //var filteredStockPrices = stockPricesUSD.OrderBy(k => k.Key).Where(k => k.Key.Date >= DateTime.Parse(startDate).Date && k.Key.Date <= DateTime.Parse(endDate).Date).ToList();
+                // badanie zmiennosci cen => kluczeoe do wybrania  bazowego wskaznika
+                // check volatility  in recend 10 /30 days => if  higher or lower => adjust emaPriod as a base signal to entry /close decision
+                // checking last crossed price => if similar 1%  volatility => do not change tactic and wait 
+                // emas/ sma shoudl be parallel in slopes to   ema7
+                // or support wim MACD
 
-            //double numberOfTokens = startMoneyUSD / (filteredStockPrices[0].Value*rateUSD_PLN);
+                // idea is :
+                // 1. Get indicators
+                // 2. simple complexity - just EMA for S&P500 example back tesing
+                // when ema 7 and ema 180 is crossed => take actions:
+                // (ema180 3days before < ema7 3 days before ) &&  (ema180 3days after > ema7 3 days after ) => sell => check  gain/loss result => with date( or without)
+                // (ema180 3days before > ema7 3 days before ) &&  (ema180 3days after < ema7 3 days after ) => BUY 
+                // alternative to previous 2:
+                // (ema180 3days after > ema7 3 days after ) => sell => check  gain/loss result => with date( or without)
+                // (ema180 3days after < ema7 3 days after ) => BUY 
+                // if (ema180 < ema 7) => keep buying
+                // if (ema180 < ema 7) => dont buy or  sell if  you have something already bought
+                // on last date sell with end date price => sumUp gains/loss  and substract  Taxtes ( 19 proce from  each registred sell gain)
 
-            //boughtTokens.Add(new KeyValuePair<double, StockToken>(numberOfTokens, new StockToken(filteredStockPrices[0].Value, filteredStockPrices[0].Key)));
 
-            var checkData = filteredStockPrices[0].Key.AddMonths(intervalMonths);
+                //List<KeyValuePair<double,StockToken>> boughtTokens=new List<KeyValuePair<double, StockToken>>();
+
+                //stockPrices order by date
+                //filter by date
+                //double rateUSD_PLN = 1;
+                //var filteredStockPrices = stockPricesUSD.OrderBy(k => k.Key).Where(k => k.Key.Date >= DateTime.Parse(startDate).Date && k.Key.Date <= DateTime.Parse(endDate).Date).ToList();
+
+                //double numberOfTokens = startMoneyUSD / (filteredStockPrices[0].Value*rateUSD_PLN);
+
+                //boughtTokens.Add(new KeyValuePair<double, StockToken>(numberOfTokens, new StockToken(filteredStockPrices[0].Value, filteredStockPrices[0].Key)));
+
+                var checkData = filteredStockPrices[0].Key.AddMonths(intervalMonths);
 
             double numberOfTokens;
             while (checkData<=DateTime.Parse(endDate))
@@ -130,7 +160,7 @@ namespace ApiChecker.InvestingStrategies
             double numberOfBoughtTokens = boughtTokens.Select(t => t.Key).Sum();
             int howManyTimesBought = boughtTokens.Count();
 
-            var dt_EndDate= filteredStockPrices.Last().Key.Date;
+            
             var endRange= dt_EndDate.AddDays(5);
             double priceAtSellDate = filteredStockPrices.Where(s => s.Key >= dt_EndDate && s.Key <=endRange).FirstOrDefault().Value;
 
