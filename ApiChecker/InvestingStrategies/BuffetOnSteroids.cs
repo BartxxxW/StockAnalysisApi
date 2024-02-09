@@ -26,34 +26,56 @@ namespace ApiChecker.InvestingStrategies
         public List<DateTime> datesToBuy = new List<DateTime>();
         public List<KeyValuePair<DateTime,double>> filteredStockPrices { get;set;}
         public double moneyToInvest = 0;
-        //sell/ buy as stock behaviours
-        public void TakeAction()
+
+
+        public void Buy(DateTime investDay)
         {
+            var stockValue = filteredStockPrices.GetStockValue(investDay);
+            double numberOfTokens2 = moneyToInvest / stockValue;
+            boughtTokens.Add(new KeyValuePair<double, StockToken>(numberOfTokens2, new StockToken(filteredStockPrices.GetStockValue(investDay), filteredStockPrices.GetStockDate(investDay))));
+            moneyToInvest = 0;
+        }
+
+        public void Sell(DateTime investDay)
+        {
+            if (boughtTokens.Count == 0)
+                return;
+
+            double numberOfBoughtTokens = boughtTokens.Select(t => t.Key).Sum();
+            var stockValue = filteredStockPrices.GetStockValue(investDay);
+            var sellDate = filteredStockPrices.GetStockDate(investDay);
+            closedTokens.AddRange(boughtTokens.Select(t => new KeyValuePair<double, ClosedStockToken>(t.Key, t.Value.ConvertToClosedStockToken(stockValue, sellDate))));
+            boughtTokens.Clear();
+
+            moneyToInvest = numberOfBoughtTokens * stockValue;
+        }
+        public void TakeAction(DateTime investDay)
+        {
+            var i7Value = i7.GetIndicatorValue(investDay);
+            var i180Value = i180.GetIndicatorValue(investDay);
+            var stockValue = filteredStockPrices.GetStockValue(investDay);
+
             if (i180Value < i7Value)
             {
-                double numberOfTokens2 = moneyToInvest / (filteredStockPrices[0].Value * rateUSD_PLN);
-                boughtTokens.Add(new KeyValuePair<double, StockToken>(numberOfTokens2, new StockToken(filteredStockPrices[0].Value, filteredStockPrices[0].Key)));
-                moneyToInvest = 0;
+                Buy(investDay);
             }
             if (i180Value > i7Value)
             {
-                double numberOfBoughtTokensIN = boughtTokens.Select(t => t.Key).Sum();
-
-                var sellDate = i7.Where(i => i.Key >= investDay && i.Key < investDay.AddDays(3)).FirstOrDefault().Key; // to replace with end date value
-                double priceAtSellDateIn = filteredStockPrices.Where(s => s.Key >= sellDate && s.Key <= sellDate.AddDays(4)).FirstOrDefault().Value;
-                closedTokens.AddRange(boughtTokens.Select(t => new KeyValuePair<double, ClosedStockToken>(t.Key, t.Value.ConvertToClosedStockToken(priceAtSellDateIn, sellDate))));
-                boughtTokens.Clear();
-
-                moneyToInvest = numberOfBoughtTokensIN * priceAtSellDateIn;
+                Sell(investDay);
             }
 
             if (i180Value == i7Value)
             {
-                // signal => what will happen in next 3 days
-                double numberOfTokens2 = moneyToInvest / (filteredStockPrices[0].Value * rateUSD_PLN);
-                boughtTokens.Add(new KeyValuePair<double, StockToken>(numberOfTokens2, new StockToken(filteredStockPrices[0].Value, filteredStockPrices[0].Key)));
-                moneyToInvest = 0;
+                //for loop
+                VerifyNext3Days(investDay);
             }
+
+            //return day
+        }
+        private int VerifyNext3Days( DateTime investDay )
+        {
+            //to develop
+            return 0;
         }
         private void GetDatesToBuy(string startDate,string endDate, int intervalMonths)
         {
@@ -63,6 +85,11 @@ namespace ApiChecker.InvestingStrategies
                 datesToBuy.Add(nextDate);
                 nextDate.AddMonths(intervalMonths);
             }
+        }
+        public void AddMoneyToInvest(DateTime investDay,double money)
+        {
+            if (datesToBuy.Contains(investDay))
+                moneyToInvest += money;
         }
         public double Simulate(ProcessedStockDataModel dataModel,string startDate, string endDate,double startMoneyUSD, double intervalMoneyUSD, int intervalMonths, List<KeyValuePair<DateTime, double>> stockPricesUSD, bool taxIncluded = false)
         {
@@ -76,7 +103,6 @@ namespace ApiChecker.InvestingStrategies
 
             GetDatesToBuy(startDate, endDate, intervalMonths);
 
-            double rateUSD_PLN = 1;
 
             filteredStockPrices = stockPricesUSD.GetStockRangeByDate(startDate, endDate);
 
@@ -87,43 +113,27 @@ namespace ApiChecker.InvestingStrategies
 
             if (i180Value < i7Value)
             {
-                double numberOfTokens2 = moneyToInvest / (filteredStockPrices[0].Value * rateUSD_PLN);
-                boughtTokens.Add(new KeyValuePair<double, StockToken>(numberOfTokens2, new StockToken(filteredStockPrices[0].Value, filteredStockPrices[0].Key)));
-                moneyToInvest = 0;
-            }
-            if (i180Value > i7Value)
-            {
-                double numberOfBoughtTokensIN = boughtTokens.Select(t => t.Key).Sum();
-
-                var sellDate = i7.Where(i => i.Key >= investDay && i.Key < investDay.AddDays(3)).FirstOrDefault().Key; // to replace with end date value
-                double priceAtSellDateIn = filteredStockPrices.Where(s => s.Key >= sellDate && s.Key <= sellDate.AddDays(4)).FirstOrDefault().Value;
-                closedTokens.AddRange(boughtTokens.Select(t=>new KeyValuePair<double, ClosedStockToken>(t.Key,t.Value.ConvertToClosedStockToken(priceAtSellDateIn, sellDate))));
-                boughtTokens.Clear();
-
-                moneyToInvest = numberOfBoughtTokensIN * priceAtSellDateIn;
+                Buy(investDay);
             }
 
-            if (i180Value == i7Value)
-            {
-                // signal => what will happen in next 3 days
-                double numberOfTokens2 = moneyToInvest / (filteredStockPrices[0].Value * rateUSD_PLN);
-                boughtTokens.Add(new KeyValuePair<double, StockToken>(numberOfTokens2, new StockToken(filteredStockPrices[0].Value, filteredStockPrices[0].Key)));
-                moneyToInvest = 0;
-            }
+
+
 
             
             var DayInLoop = DateTime.Parse(startDate).AddDays(1);
             if (boughtTokens.Count > 0)
-                DayInLoop = boughtTokens[0].Value.Date;
+                DayInLoop = boughtTokens[0].Value.Date.AddDays(1);
 
             while(DayInLoop<= dt_EndDate)
             {
-                // decision when indicators are EQUAL or it is IntervalDay to invest 
                 var iSmall= i7.GetIndicatorValue(DayInLoop);
                 var iLarge= i180.GetIndicatorValue(DayInLoop);
 
                 if (iSmall==iLarge || datesToBuy.Contains(DayInLoop))
                 {
+                    AddMoneyToInvest(DayInLoop, intervalMoneyUSD);
+
+                    TakeAction(DayInLoop); //maybe should return a day ?
                     // market action
                 }
 
@@ -159,37 +169,10 @@ namespace ApiChecker.InvestingStrategies
                 // on last date sell with end date price => sumUp gains/loss  and substract  Taxtes ( 19 proce from  each registred sell gain)
 
 
-                //List<KeyValuePair<double,StockToken>> boughtTokens=new List<KeyValuePair<double, StockToken>>();
-
-                //stockPrices order by date
-                //filter by date
-                //double rateUSD_PLN = 1;
-                //var filteredStockPrices = stockPricesUSD.OrderBy(k => k.Key).Where(k => k.Key.Date >= DateTime.Parse(startDate).Date && k.Key.Date <= DateTime.Parse(endDate).Date).ToList();
-
-                //double numberOfTokens = startMoneyUSD / (filteredStockPrices[0].Value*rateUSD_PLN);
-
-                //boughtTokens.Add(new KeyValuePair<double, StockToken>(numberOfTokens, new StockToken(filteredStockPrices[0].Value, filteredStockPrices[0].Key)));
-
-            // add months to date from [0]
-            //while  next date is <= addeMontsDate - buy new stock
-
-            //01 => buy token and 0 date with start money for price
-            //02 every intervalOf MOnths buy token with   appripriate price ( add.Months)
-            //add to tokens list
-
-            // ont the end period in end date sell all token with thaht price ( number of token times actual price)
 
 
-            //1. start money
-            //2. buy every period with certian amount of money
-            //3. always buy
-            //4. after years sell
 
-            //prerequistse:
-            // 1. start day
-            // 2. end date
-            // 3. buy token   for certain price
-            // 4. sum up all bought money after certian period of times
+
 
 
             return result;
