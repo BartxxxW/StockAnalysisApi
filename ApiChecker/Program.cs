@@ -9,7 +9,7 @@ using ApiChecker.Services;
 using Autofac;
 using Microsoft.EntityFrameworkCore;
 using System.Data.Entity;
-
+using System.Drawing;
 
 Console.WriteLine("Check bonds Calculation");
 
@@ -69,25 +69,31 @@ var datamodel = stockApi.GetStockData("SPY",startDay:"1997-04-04")
 //    .ReturnApiData();
 
 
-var wb= new WarrenBuffet();
+//var wb= new WarrenBuffet();
 
-// whe end resut =0? hhow many invested / how many end the end / why displayed all simulation with bonds?
-wb.Simulate("15-01-2007", "15-01-2012", 1000, 1000,4, datamodel.StockPrices);
-//var filtredStockPrices =  datamodel.StockPrices.OrderBy(k => k.Key).Where(k => (k.Key >= DateTime.Parse("01-01-2024") && k.Key <= DateTime.Parse("21-01-2024"))).ToList();
 
-//Console.WriteLine($"start  position : {filtredStockPrices[0].Key} :{filtredStockPrices[0].Value} ");
-//Console.WriteLine($"start  position : {filtredStockPrices.Last().Key} :{filtredStockPrices.Last().Value} ");
-//Console.WriteLine("   ---------       ");
-//filtredStockPrices.ForEach(i => Console.WriteLine($"start  position : {i.Key} :{i.Value} "));
 
-// plot first chsrt in that way
+//wb.Simulate("15-01-2007", "15-01-2012", 1000, 1000,4, datamodel.StockPrices);
+
+
+var bos=new BuffetOnSteroids();
+
+bos.Simulate(datamodel, "15-01-2007", "15-01-2012", 1000, 1000, 4);
+
+
 double[] xs = datamodel.xAxis.Select(tds => tds.ToOADate()).ToArray();
 double[] ys = datamodel.yValues.ToArray();
 
-//DataPlotter.Instance(xs, ys).Plot();
+
 var plotter=DataPlotter.Instance(xs, ys);
 
 datamodel.IndicatorsList.ToList().ForEach(indicator=>plotter.AddScatter(indicator.Value.ToArray()));
+
+double[] sellDates=bos.SellDates.Select(tds => tds.ToOADate()).ToArray();
+double[] buyDates=bos.BuyDates.Select(tds => tds.ToOADate()).ToArray();
+
+sellDates.ToList().ForEach(d=>plotter.Plt.AddVerticalLine(d,color:Color.Red));
+buyDates.ToList().ForEach(d=>plotter.Plt.AddVerticalLine(d, color: Color.Green));
 
 plotter.Plot();
 

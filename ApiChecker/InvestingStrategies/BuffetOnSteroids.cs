@@ -9,22 +9,28 @@ using System.Linq;
 using System.Text;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using static ApiChecker.Extensions.MathExtensions;
 
 namespace ApiChecker.InvestingStrategies
 {
-
+    public enum StockAction
+    {
+        Buy,
+        Sell,
+        Wait,
+        Default
+    }
     public class BuffetOnSteroids : IStrategy
     {
-        //to develop : Stock Prices as TOkens LIst or Dictionary
-        // invest every 4 months but be vigilant with  market chenges
-        //loss or gains on the end of year should be counted
-        // 21/(60)/180
+
         public List<KeyValuePair<double, StockToken>> boughtTokens = new List<KeyValuePair<double, StockToken>>();
         public List<KeyValuePair<double, ClosedStockToken>> closedTokens = new List<KeyValuePair<double, ClosedStockToken>>();
         public List<KeyValuePair<DateTime, double>> i7 {get;set;}
         public List<KeyValuePair<DateTime, double>> i180 {get;set;}
         public List<DateTime> datesToBuy = new List<DateTime>();
         public List<KeyValuePair<DateTime,double>> filteredStockPrices { get;set;}
+        public List<DateTime> SellDates = new List<DateTime>();
+        public List<DateTime> BuyDates = new List<DateTime>();
         public double moneyToInvest = 0;
 
 
@@ -34,6 +40,7 @@ namespace ApiChecker.InvestingStrategies
             double numberOfTokens2 = moneyToInvest / stockValue;
             boughtTokens.Add(new KeyValuePair<double, StockToken>(numberOfTokens2, new StockToken(filteredStockPrices.GetStockValue(investDay), filteredStockPrices.GetStockDate(investDay))));
             moneyToInvest = 0;
+            BuyDates.Add(investDay);
         }
 
         public void Sell(DateTime investDay)
@@ -48,34 +55,74 @@ namespace ApiChecker.InvestingStrategies
             boughtTokens.Clear();
 
             moneyToInvest = numberOfBoughtTokens * stockValue;
+            SellDates.Add(investDay);
         }
-        public void TakeAction(DateTime investDay)
+        public DateTime TakeAction(DateTime investDay)
         {
             var i7Value = i7.GetIndicatorValue(investDay);
             var i180Value = i180.GetIndicatorValue(investDay);
             var stockValue = filteredStockPrices.GetStockValue(investDay);
+            DateTime nextDate = investDay;
+            bool AreEqual = AreAlmostEqual(i180Value, i7Value);
 
-            if (i180Value < i7Value)
+            if (i180Value < i7Value && AreEqual == false)
             {
                 Buy(investDay);
             }
-            if (i180Value > i7Value)
+            if (i180Value > i7Value && AreEqual == false)
             {
                 Sell(investDay);
             }
 
-            if (i180Value == i7Value)
+            if (AreEqual)
             {
-                //for loop
-                VerifyNext3Days(investDay);
+                var nextDays=VerifyNext5Days(investDay);
+                if(nextDays.All(d=>d==StockAction.Buy) && nextDays.Count() == 5)
+                {
+                    Buy(investDay.AddDays(5));
+                    nextDate = investDay.AddDays(5);
+                }
+                if (nextDays.All(d => d == StockAction.Sell) && nextDays.Count() == 5)
+                {
+                    Sell(investDay.AddDays(5));
+                    nextDate = investDay.AddDays(5);
+                }
             }
 
-            //return day
+            return nextDate;
         }
-        private int VerifyNext3Days( DateTime investDay )
+        private StockAction CheckAction(DateTime investDay)
         {
-            //to develop
-            return 0;
+            var i7Value = i7.GetIndicatorValue(investDay);
+            var i180Value = i180.GetIndicatorValue(investDay);
+            var stockValue = filteredStockPrices.GetStockValue(investDay);
+            bool AreEqual = AreAlmostEqual(i180Value, i7Value);
+
+            if (i180Value < i7Value && AreEqual==false)
+            {
+                return StockAction.Buy;
+            }
+            if (i180Value > i7Value && AreEqual == false)
+            {
+                return StockAction.Sell;
+            }
+
+            if (AreEqual)
+            {
+                return StockAction.Wait;
+            }
+            return StockAction.Default;
+        }
+
+        private IEnumerable<StockAction> VerifyNext5Days( DateTime investDay )
+        {
+            for (int i=1;i<6;i++)
+            {
+                Console.WriteLine(i);
+                var stockAction=CheckAction(investDay.AddDays(i));
+                yield return stockAction;
+
+            }
         }
         private void GetDatesToBuy(string startDate,string endDate, int intervalMonths)
         {
@@ -83,7 +130,7 @@ namespace ApiChecker.InvestingStrategies
             while (nextDate <= DateTime.Parse(endDate))
             {
                 datesToBuy.Add(nextDate);
-                nextDate.AddMonths(intervalMonths);
+                nextDate=nextDate.AddMonths(intervalMonths);
             }
         }
         public void AddMoneyToInvest(DateTime investDay,double money)
@@ -91,20 +138,20 @@ namespace ApiChecker.InvestingStrategies
             if (datesToBuy.Contains(investDay))
                 moneyToInvest += money;
         }
-        public double Simulate(ProcessedStockDataModel dataModel,string startDate, string endDate,double startMoneyUSD, double intervalMoneyUSD, int intervalMonths, List<KeyValuePair<DateTime, double>> stockPricesUSD, bool taxIncluded = false)
+        public double Simulate(ProcessedStockDataModel dataModel,string startDate, string endDate,double startMoneyUSD, double intervalMoneyUSD, int intervalMonths,  bool taxIncluded = false)
         {
 
             double result = 0;
             
             moneyToInvest += startMoneyUSD;
 
-            i7 = dataModel.GetIndicatorWithDatesFromDataModel("EMA7");
-            i180 = dataModel.GetIndicatorWithDatesFromDataModel("EMA180");
+            i7 = dataModel.GetIndicatorWithDatesFromDataModel("EMA45");
+            i180 = dataModel.GetIndicatorWithDatesFromDataModel("SMA80");
 
             GetDatesToBuy(startDate, endDate, intervalMonths);
 
 
-            filteredStockPrices = stockPricesUSD.GetStockRangeByDate(startDate, endDate);
+            filteredStockPrices = dataModel.StockPrices.GetStockRangeByDate(startDate, endDate);
 
             var dt_EndDate = filteredStockPrices.Last().Key.Date;
             var investDay = DateTime.Parse(startDate);
@@ -129,15 +176,15 @@ namespace ApiChecker.InvestingStrategies
                 var iSmall= i7.GetIndicatorValue(DayInLoop);
                 var iLarge= i180.GetIndicatorValue(DayInLoop);
 
-                if (iSmall==iLarge || datesToBuy.Contains(DayInLoop))
+                if (AreAlmostEqual(iSmall, iLarge) || datesToBuy.Contains(DayInLoop))
                 {
                     AddMoneyToInvest(DayInLoop, intervalMoneyUSD);
 
-                    TakeAction(DayInLoop); //maybe should return a day ?
-                    // market action
+                    DayInLoop=TakeAction(DayInLoop);
+
                 }
 
-                DayInLoop.AddDays(1);
+                DayInLoop=DayInLoop.AddDays(1);
 
             }
 
