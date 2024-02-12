@@ -31,6 +31,10 @@ namespace ApiChecker.DataProcessing
         public const string MACD_SLOW_EMA = "MACD_SLOW_EMA";
         public const string MACD_FAST_EMA = "MACD_FAST_EMA";
         public const string EMA = "EMA";
+        public const string OBV = "OBV";
+        public const string OBV_RSI = "OBV_RSI";
+        public const string SLOPE = "SLOPE";
+        public const string RSI_SLOPE = "RSI_SLOPE";
     }
 
     public static class StockIndicators
@@ -42,7 +46,11 @@ namespace ApiChecker.DataProcessing
                 { Indicators.RSI,RSI},
                 { Indicators.MACD,MACD},
                 { Indicators.MACD_SIGNAL,MACD_SIGNAL},
-                { Indicators.EMA,EMA}
+                { Indicators.EMA,EMA},
+                { Indicators.OBV,OBV},
+                { Indicators.OBV_RSI,OBV_RSI},
+                { Indicators.SLOPE,SLOPE},
+                { Indicators.RSI_SLOPE,RSI_SLOPE}
             };
 
         private static IEnumerable<MacdResult>? _macdResult {get; set;} =null;
@@ -91,6 +99,68 @@ namespace ApiChecker.DataProcessing
                 parameter = param[0];
             }
             var sma = stockModel.GetRsi(parameter).Reverse();
+
+            List<double> smaValues = sma.Select(v => {
+
+                if (v.Rsi == null) { return Double.NaN; }
+                return Convert.ToDouble(v.Rsi);
+
+            }).ToList();
+
+            return smaValues;
+        }
+        private static List<double> OBV(IEnumerable<StockModel> stockModel, params int[] param)
+        {
+
+            var sma = stockModel.GetObv().Reverse();
+
+            List<double> smaValues = sma.Select(v => {
+
+                if (v.Obv == null) { return Double.NaN; }
+                return Convert.ToDouble(v.Obv);
+
+            }).ToList();
+
+            return smaValues;
+        }
+        private static List<double> RSI_SLOPE(IEnumerable<StockModel> stockModel, params int[] param)
+        {
+            var parameter = 14;
+            if (param.Length != 0)
+            {
+                parameter = param[0];
+            }
+            var sma = stockModel.GetRsi(14).GetSlope(parameter).Reverse();
+
+            List<double> smaValues = sma.Select(v => {
+
+                if (v.Slope == null) { return Double.NaN; }
+                return Convert.ToDouble(v.Slope);
+
+            }).ToList();
+
+            return smaValues;
+        }
+        private static List<double> SLOPE(IEnumerable<StockModel> stockModel, params int[] param)
+        {
+            var parameter = 14;
+            if (param.Length != 0)
+            {
+                parameter = param[0];
+            }
+            var sma = stockModel.GetSlope(parameter).Reverse();
+
+            List<double> smaValues = sma.Select(v => {
+                return Convert.ToDouble(v.Line);
+
+            }).ToList();
+
+            return smaValues;
+        }
+        private static List<double> OBV_RSI(IEnumerable<StockModel> stockModel, params int[] param)
+        {
+
+            var sma = stockModel.GetObv().GetRsi(14).Reverse();
 
             List<double> smaValues = sma.Select(v => {
 

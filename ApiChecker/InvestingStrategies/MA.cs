@@ -13,14 +13,7 @@ using static ApiChecker.Extensions.MathExtensions;
 
 namespace ApiChecker.InvestingStrategies
 {
-    public enum StockAction
-    {
-        Buy,
-        Sell,
-        Wait,
-        Default
-    }
-    public class BuffetOnSteroids : IStrategy
+    public class MA : IStrategy
     {
 
         public List<KeyValuePair<double, StockToken>> boughtTokens = new List<KeyValuePair<double, StockToken>>();
@@ -188,32 +181,21 @@ namespace ApiChecker.InvestingStrategies
             filteredStockPrices = dataModel.StockPrices.GetStockRangeByDate(startDate, endDate);
 
             var dt_EndDate = filteredStockPrices.Last().Key.Date;
-            var investDay = DateTime.Parse(startDate);
-            var i7Value = i7.GetIndicatorValue(investDay);
-            var i180Value = i180.GetIndicatorValue(investDay);
 
-            if (i180Value < i7Value)
-            {
-                Buy(investDay);
-            }
-
-
-
-
-            
-            var DayInLoop = DateTime.Parse(startDate).AddDays(1);
-            if (boughtTokens.Count > 0)
-                DayInLoop = boughtTokens[0].Value.Date.AddDays(1);
+            var DayInLoop = DateTime.Parse(startDate);
 
             while(DayInLoop<= dt_EndDate)
             {
                 var iSmall= i7.GetIndicatorValue(DayInLoop);
                 var iLarge= i180.GetIndicatorValue(DayInLoop);
-
-                if (AreAlmostEqual(iSmall, iLarge) || datesToBuy.Contains(DayInLoop))
+                if(datesToBuy.Contains(DayInLoop))
                 {
                     AddMoneyToInvest(DayInLoop, intervalMoneyUSD);
+                }
 
+                if (AreAlmostEqual(iSmall, iLarge))
+                {
+                    
                     DayInLoop=TakeAction(DayInLoop);
 
                 }
@@ -230,7 +212,7 @@ namespace ApiChecker.InvestingStrategies
 
             double resultAfterTaxes = resultWithoutTaxes - PayTaxes();
 
-            Console.WriteLine($"BuffetOnSteroids=> PaidIn:{paidInMoney} ; result without taxes: {resultWithoutTaxes} ; afterTAxes!: {resultAfterTaxes}");
+            Console.WriteLine($"MA=> PaidIn:{paidInMoney} ; result without taxes: {resultWithoutTaxes} ; afterTAxes!: {resultAfterTaxes}");
 
             //while loop {} => iterate through dates  => according to algorithm buy or sell  +  be vigilant for signals from market i7=i180 +3 days => sum up all gains -  19 %
             //use money to invest as modyficator when sell ( full) wneh buy => empty

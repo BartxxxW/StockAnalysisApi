@@ -1,4 +1,5 @@
-﻿using ApiChecker.Models;
+﻿using ApiChecker.InvestingStrategies;
+using ApiChecker.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,6 +13,16 @@ namespace ApiChecker.Extensions
         public static List<KeyValuePair<DateTime,double>> GetIndicatorWithDatesFromDataModel(this ProcessedStockDataModel dataModel,string indicator)
         {
             return dataModel.xAxis.Zip(dataModel.IndicatorsList[indicator], (x, v) => new KeyValuePair<DateTime, double>(x, v)).ToList();
+        }
+        public static double ClosedTokenGain(this ClosedStockToken token)
+        {
+            double res = 0;
+            if(token.ClosedPrice>token.Price)
+            {
+                res= token.ClosedPrice-token.Price;
+            }
+
+            return res;
         }
     }
 }

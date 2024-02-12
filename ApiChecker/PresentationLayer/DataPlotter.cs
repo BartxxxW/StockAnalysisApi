@@ -26,7 +26,7 @@ namespace ApiChecker.PresentationLayer
         }
         public void Plot(string chartName="chart")
         {
-
+            Plt.Legend();
             Plt.SaveFig($"{chartName}.png");
 
             ProcessStartInfo startInfo = new ProcessStartInfo
@@ -38,9 +38,9 @@ namespace ApiChecker.PresentationLayer
             Process.Start(startInfo);
         }
 
-        public DataPlotter AddScatter(double[] yValues)
+        public DataPlotter AddScatter(double[] yValues,string label)
         {
-            var scatter1 = Plt.AddScatter(xBase, yValues);
+            var scatter1 = Plt.AddScatter(xBase, yValues, label:label);
             scatter1.OnNaN = ScottPlot.Plottable.ScatterPlot.NanBehavior.Ignore;
 
             return this;

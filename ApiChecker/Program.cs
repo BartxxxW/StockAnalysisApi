@@ -52,35 +52,39 @@ dbContext.Database.EnsureCreated();
 // for now just modificator bool update
 var datamodel = stockApi.GetStockData("SPY",startDay:"1997-04-04")
     //.AddIndicator(Indicators.EMA,7)
-    .AddIndicator(Indicators.SMA,50)
-    //.AddIndicator(Indicators.EMA,45)
-    //.AddIndicator(Indicators.EMA,23)
-    //.AddIndicator(Indicators.EMA,30)
-    //.AddIndicator(Indicators.EMA,90)
-    //.AddIndicator(Indicators.EMA,90)
-    //.AddIndicator(Indicators.EMA, 120)
-    //.AddIndicator(Indicators.SMA, 80)
+    //.AddIndicator(Indicators.SMA,50)
     //.AddIndicator(Indicators.EMA,180)
-    .AddIndicator(Indicators.SMA,200)
-    .AddIndicator(Indicators.MACD,12,26,9)
-    .AddIndicator(Indicators.MACD_SIGNAL)
-    .AddIndicator(Indicators.RSI,14).ReturnApiData();
+    //.AddIndicator(Indicators.SMA,200)
+    .AddIndicator(Indicators.EMA,50)
+    .AddIndicator(Indicators.EMA,200)
+    .AddIndicator(Indicators.SLOPE,30)
+//    .AddIndicator(Indicators.RSI_SLOPE)
+    //.AddIndicator(Indicators.OBV)
+    //.AddIndicator(Indicators.OBV_RSI)
+    //.AddIndicator(Indicators.MACD,12,26,9)
+    //.AddIndicator(Indicators.MACD_SIGNAL)
+    .AddIndicator(Indicators.RSI, 14)
+    .ReturnApiData();
 
 //var datamodel=StockAPI.Instance()
 //    .GetStockData("QQQ")
 //    .ReturnApiData();
 
 
-//var wb= new WarrenBuffet();
+var wb = new WarrenBuffet();
 
 
 
-//wb.Simulate("15-01-2007", "15-01-2012", 1000, 1000,4, datamodel.StockPrices);
+wb.Simulate("15-01-2007", "15-01-2012", 1000, 1000, 4, datamodel.StockPrices);
 
 
 var bos=new BuffetOnSteroids();
 
-bos.Simulate(datamodel, "15-01-2007", "15-01-2012", 1000, 1000, 4);
+bos.Simulate("EMA50","EMA200",datamodel, "15-01-2007", "15-01-2012", 1000, 1000, 4);
+
+var maStrategy = new MA();
+
+maStrategy.Simulate("EMA50", "EMA200", datamodel, "15-01-2007", "15-01-2012", 1000, 1000, 4);
 
 
 double[] xs = datamodel.xAxis.Select(tds => tds.ToOADate()).ToArray();
@@ -89,14 +93,33 @@ double[] ys = datamodel.yValues.ToArray();
 
 var plotter=DataPlotter.Instance(xs, ys);
 
-datamodel.IndicatorsList.ToList().ForEach(indicator=>plotter.AddScatter(indicator.Value.ToArray()));
+datamodel.IndicatorsList.ToList().ForEach(indicator=>plotter.AddScatter(indicator.Value.ToArray(),indicator.Key));
 
-double[] sellDates=bos.SellDates.Select(tds => tds.ToOADate()).ToArray();
-double[] buyDates=bos.BuyDates.Select(tds => tds.ToOADate()).ToArray();
+//double[] newxS = { xs[0], xs.Last() };
+//double[] ysNew = { 50, 250 };
+
+//plotter.Plt.AddScatter(newxS, ysNew);
+//plotter.Plt.AddScatterLines(newxS, ysNew);
+
+double[] sellDates=maStrategy.SellDates.Select(tds => tds.ToOADate()).ToArray();
+double[] buyDates= maStrategy.BuyDates.Select(tds => tds.ToOADate()).ToArray();
 
 sellDates.ToList().ForEach(d=>plotter.Plt.AddVerticalLine(d,color:Color.Red));
 buyDates.ToList().ForEach(d=>plotter.Plt.AddVerticalLine(d, color: Color.Green));
 
 plotter.Plot();
+////---
+
+//var stockApiOBV = conteiner.Resolve<IStockAPI>();
+
+//var datamodelOBV = stockApiOBV.GetStockData("SPY", startDay: "1997-04-04")
+//        .AddIndicator(Indicators.OBV)
+//    //.AddIndicator(Indicators.OBV_RSI)
+//    .ReturnApiData();
+
+//var plotterOBV = DataPlotter.Instance(xs, datamodelOBV.IndicatorsList.ToList()[0].Value.ToArray());
+////datamodelOBV.IndicatorsList.ToList().ForEach(indicator => plotter.AddScatter(indicator.Value.ToArray(), indicator.Key));
+//plotterOBV.Plot("OBVchart");
+//--
 
 Console.WriteLine("THE END");
