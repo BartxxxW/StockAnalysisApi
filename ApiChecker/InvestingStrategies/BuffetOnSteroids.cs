@@ -76,13 +76,13 @@ namespace ApiChecker.InvestingStrategies
 
             if (AreEqual)
             {
-                var nextDays=VerifyNext5Days(investDay);
-                if(nextDays.All(d=>d==StockAction.Buy) && nextDays.Count() == 5)
+                var nextDays=VerifyNext5Days(investDay).ToList();
+                if(nextDays.All(d=>d==StockAction.Buy) && nextDays.Count() == 3)
                 {
                     Buy(investDay.AddDays(5));
                     nextDate = investDay.AddDays(5);
                 }
-                if (nextDays.All(d => d == StockAction.Sell) && nextDays.Count() == 5)
+                if (nextDays.All(d => d == StockAction.Sell) && nextDays.Count() == 3)
                 {
                     Sell(investDay.AddDays(5));
                     nextDate = investDay.AddDays(5);
@@ -116,9 +116,8 @@ namespace ApiChecker.InvestingStrategies
 
         private IEnumerable<StockAction> VerifyNext5Days( DateTime investDay )
         {
-            for (int i=1;i<6;i++)
+            for (int i=1;i<4;i++)
             {
-                Console.WriteLine(i);
                 var stockAction=CheckAction(investDay.AddDays(i));
                 yield return stockAction;
 
@@ -138,6 +137,10 @@ namespace ApiChecker.InvestingStrategies
             if (datesToBuy.Contains(investDay))
                 moneyToInvest += money;
         }
+        private double PayTaxes()
+        {
+            return 0;
+        }
         public double Simulate(ProcessedStockDataModel dataModel,string startDate, string endDate,double startMoneyUSD, double intervalMoneyUSD, int intervalMonths,  bool taxIncluded = false)
         {
 
@@ -145,8 +148,8 @@ namespace ApiChecker.InvestingStrategies
             
             moneyToInvest += startMoneyUSD;
 
-            i7 = dataModel.GetIndicatorWithDatesFromDataModel("EMA45");
-            i180 = dataModel.GetIndicatorWithDatesFromDataModel("SMA80");
+            i7 = dataModel.GetIndicatorWithDatesFromDataModel("SMA50");
+            i180 = dataModel.GetIndicatorWithDatesFromDataModel("SMA200");
 
             GetDatesToBuy(startDate, endDate, intervalMonths);
 
@@ -188,32 +191,39 @@ namespace ApiChecker.InvestingStrategies
 
             }
 
+            //Last Sell
+            Sell(dt_EndDate);
+
+            double paidInMoney = startMoneyUSD + datesToBuy.Count * intervalMoneyUSD;
+            double resultWithoutTaxes = moneyToInvest;
+
+            double resultAfterTaxes = resultWithoutTaxes - PayTaxes();
 
                 //while loop {} => iterate through dates  => according to algorithm buy or sell  +  be vigilant for signals from market i7=i180 +3 days => sum up all gains -  19 %
                 //use money to invest as modyficator when sell ( full) wneh buy => empty
 
 
-                // buystoc() => with checking if shoud be bought if invested - then money to invest eqal 0
-                // sell => gains to gains/ bought cleared / money to invest 9 after sell)
+            // buystoc() => with checking if shoud be bought if invested - then money to invest eqal 0
+            // sell => gains to gains/ bought cleared / money to invest 9 after sell)
 
-                // badanie zmiennosci cen => kluczeoe do wybrania  bazowego wskaznika
-                // check volatility  in recend 10 /30 days => if  higher or lower => adjust emaPriod as a base signal to entry /close decision
-                // checking last crossed price => if similar 1%  volatility => do not change tactic and wait 
-                // emas/ sma shoudl be parallel in slopes to   ema7
-                // or support wim MACD
+            // badanie zmiennosci cen => kluczeoe do wybrania  bazowego wskaznika
+            // check volatility  in recend 10 /30 days => if  higher or lower => adjust emaPriod as a base signal to entry /close decision
+            // checking last crossed price => if similar 1%  volatility => do not change tactic and wait 
+            // emas/ sma shoudl be parallel in slopes to   ema7
+            // or support wim MACD
 
-                // idea is :
-                // 1. Get indicators
-                // 2. simple complexity - just EMA for S&P500 example back tesing
-                // when ema 7 and ema 180 is crossed => take actions:
-                // (ema180 3days before < ema7 3 days before ) &&  (ema180 3days after > ema7 3 days after ) => sell => check  gain/loss result => with date( or without)
-                // (ema180 3days before > ema7 3 days before ) &&  (ema180 3days after < ema7 3 days after ) => BUY 
-                // alternative to previous 2:
-                // (ema180 3days after > ema7 3 days after ) => sell => check  gain/loss result => with date( or without)
-                // (ema180 3days after < ema7 3 days after ) => BUY 
-                // if (ema180 < ema 7) => keep buying
-                // if (ema180 < ema 7) => dont buy or  sell if  you have something already bought
-                // on last date sell with end date price => sumUp gains/loss  and substract  Taxtes ( 19 proce from  each registred sell gain)
+            // idea is :
+            // 1. Get indicators
+            // 2. simple complexity - just EMA for S&P500 example back tesing
+            // when ema 7 and ema 180 is crossed => take actions:
+            // (ema180 3days before < ema7 3 days before ) &&  (ema180 3days after > ema7 3 days after ) => sell => check  gain/loss result => with date( or without)
+            // (ema180 3days before > ema7 3 days before ) &&  (ema180 3days after < ema7 3 days after ) => BUY 
+            // alternative to previous 2:
+            // (ema180 3days after > ema7 3 days after ) => sell => check  gain/loss result => with date( or without)
+            // (ema180 3days after < ema7 3 days after ) => BUY 
+            // if (ema180 < ema 7) => keep buying
+            // if (ema180 < ema 7) => dont buy or  sell if  you have something already bought
+            // on last date sell with end date price => sumUp gains/loss  and substract  Taxtes ( 19 proce from  each registred sell gain)
 
 
 

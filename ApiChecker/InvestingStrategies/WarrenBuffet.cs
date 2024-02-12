@@ -94,7 +94,6 @@ namespace ApiChecker.InvestingStrategies
             var endRange= dt_EndDate.AddDays(5);
             double priceAtSellDate = filteredStockPrices.Where(s => s.Key >= dt_EndDate && s.Key <=endRange).FirstOrDefault().Value;
 
-            //boughtTokens.ForEach(t => Console.WriteLine($" date : {t.Value.Date}  , price : {t.Value.Price}"));
 
             result = numberOfBoughtTokens * priceAtSellDate;
 
