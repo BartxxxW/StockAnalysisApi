@@ -25,6 +25,7 @@ namespace ApiChecker.InvestingStrategies
         public List<DateTime> SellDates = new List<DateTime>();
         public List<DateTime> BuyDates = new List<DateTime>();
         public double moneyToInvest = 0;
+        public double investedMoney = 0;
 
 
         public void Buy(DateTime investDay)
@@ -131,7 +132,10 @@ namespace ApiChecker.InvestingStrategies
         public void AddMoneyToInvest(DateTime investDay,double money)
         {
             if (datesToBuy.Contains(investDay))
+            { 
                 moneyToInvest += money;
+                investedMoney += money;
+            }
         }
 
         public double CalculateGain(List<KeyValuePair<double,ClosedStockToken>> closedTokens,int Year)
@@ -142,6 +146,15 @@ namespace ApiChecker.InvestingStrategies
             tokensInTaxYear.ForEach(t=>gainsPerTransaction.Add(t.Key*t.Value.ClosedTokenGain()));
 
             return gainsPerTransaction.Sum();
+        }
+        public double CalculateLoss(List<KeyValuePair<double, ClosedStockToken>> closedTokens, int Year)
+        {
+            List<double> lossPerTransaction = new List<double>();
+            var tokensInTaxYear = closedTokens.Where(t => t.Value.ClosedDate.Year == Year).ToList();
+
+            tokensInTaxYear.ForEach(t => lossPerTransaction.Add(t.Key * t.Value.ClosedTokenLoss()));
+
+            return lossPerTransaction.Sum();
         }
         public double Calculate19Tax(double money)
         {
@@ -159,6 +172,7 @@ namespace ApiChecker.InvestingStrategies
             foreach(var taxYear in taxYears)
             {
                 double gain = CalculateGain(closedTokens,taxYear);
+                double loss = CalculateLoss(closedTokens,taxYear);
                 TaxToPay += Calculate19Tax(gain);
 
             }
@@ -212,7 +226,7 @@ namespace ApiChecker.InvestingStrategies
 
             double resultAfterTaxes = resultWithoutTaxes - PayTaxes();
 
-            Console.WriteLine($"MA=> PaidIn:{paidInMoney} ; result without taxes: {resultWithoutTaxes} ; afterTAxes!: {resultAfterTaxes}");
+            Console.WriteLine($"MA=> PaidIn:{paidInMoney} ; result without taxes: {resultWithoutTaxes} ; afterTAxes!: {resultAfterTaxes} ; afterTAinvestedmoneyxes!: {investedMoney}");
 
             //while loop {} => iterate through dates  => according to algorithm buy or sell  +  be vigilant for signals from market i7=i180 +3 days => sum up all gains -  19 %
             //use money to invest as modyficator when sell ( full) wneh buy => empty

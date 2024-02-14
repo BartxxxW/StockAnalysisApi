@@ -24,5 +24,15 @@ namespace ApiChecker.Extensions
 
             return res;
         }
+        public static double ClosedTokenLoss(this ClosedStockToken token)
+        {
+            double res = 0;
+            if (token.ClosedPrice < token.Price)
+            {
+                res = token.Price - token.ClosedPrice;
+            }
+
+            return res;
+        }
     }
 }
