@@ -171,9 +171,14 @@ namespace ApiChecker.InvestingStrategies
 
             foreach(var taxYear in taxYears)
             {
+                double bilans = 0;
                 double gain = CalculateGain(closedTokens,taxYear);
                 double loss = CalculateLoss(closedTokens,taxYear);
-                TaxToPay += Calculate19Tax(gain);
+
+                if (gain > loss)
+                    bilans = gain - loss;
+
+                TaxToPay += Calculate19Tax(bilans);
 
             }
 
@@ -185,18 +190,21 @@ namespace ApiChecker.InvestingStrategies
             double result = 0;
             
             moneyToInvest += startMoneyUSD;
+            investedMoney += startMoneyUSD;
 
             i7 = dataModel.GetIndicatorWithDatesFromDataModel(baseIndicator);
             i180 = dataModel.GetIndicatorWithDatesFromDataModel(Indicator);
 
-            GetDatesToBuy(startDate, endDate, intervalMonths);
+            
 
 
             filteredStockPrices = dataModel.StockPrices.GetStockRangeByDate(startDate, endDate);
 
             var dt_EndDate = filteredStockPrices.Last().Key.Date;
+            GetDatesToBuy(startDate, dt_EndDate.ToString(), intervalMonths);
 
             var DayInLoop = DateTime.Parse(startDate);
+            int iterator = 0;
 
             while(DayInLoop<= dt_EndDate)
             {
@@ -205,11 +213,12 @@ namespace ApiChecker.InvestingStrategies
                 if(datesToBuy.Contains(DayInLoop))
                 {
                     AddMoneyToInvest(DayInLoop, intervalMoneyUSD);
+                    iterator++;
                 }
 
                 if (AreAlmostEqual(iSmall, iLarge))
                 {
-                    
+                    //fix here
                     DayInLoop=TakeAction(DayInLoop);
 
                 }
@@ -218,47 +227,14 @@ namespace ApiChecker.InvestingStrategies
 
             }
 
-            //Last Sell
             Sell(dt_EndDate);
-
+            Console.WriteLine("iterations:"+iterator);
             double paidInMoney = startMoneyUSD + datesToBuy.Count * intervalMoneyUSD;
             double resultWithoutTaxes = moneyToInvest;
 
             double resultAfterTaxes = resultWithoutTaxes - PayTaxes();
 
             Console.WriteLine($"MA=> PaidIn:{paidInMoney} ; result without taxes: {resultWithoutTaxes} ; afterTAxes!: {resultAfterTaxes} ; afterTAinvestedmoneyxes!: {investedMoney}");
-
-            //while loop {} => iterate through dates  => according to algorithm buy or sell  +  be vigilant for signals from market i7=i180 +3 days => sum up all gains -  19 %
-            //use money to invest as modyficator when sell ( full) wneh buy => empty
-
-
-            // buystoc() => with checking if shoud be bought if invested - then money to invest eqal 0
-            // sell => gains to gains/ bought cleared / money to invest 9 after sell)
-
-            // badanie zmiennosci cen => kluczeoe do wybrania  bazowego wskaznika
-            // check volatility  in recend 10 /30 days => if  higher or lower => adjust emaPriod as a base signal to entry /close decision
-            // checking last crossed price => if similar 1%  volatility => do not change tactic and wait 
-            // emas/ sma shoudl be parallel in slopes to   ema7
-            // or support wim MACD
-
-            // idea is :
-            // 1. Get indicators
-            // 2. simple complexity - just EMA for S&P500 example back tesing
-            // when ema 7 and ema 180 is crossed => take actions:
-            // (ema180 3days before < ema7 3 days before ) &&  (ema180 3days after > ema7 3 days after ) => sell => check  gain/loss result => with date( or without)
-            // (ema180 3days before > ema7 3 days before ) &&  (ema180 3days after < ema7 3 days after ) => BUY 
-            // alternative to previous 2:
-            // (ema180 3days after > ema7 3 days after ) => sell => check  gain/loss result => with date( or without)
-            // (ema180 3days after < ema7 3 days after ) => BUY 
-            // if (ema180 < ema 7) => keep buying
-            // if (ema180 < ema 7) => dont buy or  sell if  you have something already bought
-            // on last date sell with end date price => sumUp gains/loss  and substract  Taxtes ( 19 proce from  each registred sell gain)
-
-
-
-
-
-
 
 
             return result;
