@@ -15,7 +15,7 @@ namespace ApiChecker.InvestingStrategies
 {
     public class MA : IStrategy
     {
-
+        public int testIterator = 0;
         public List<KeyValuePair<double, StockToken>> boughtTokens = new List<KeyValuePair<double, StockToken>>();
         public List<KeyValuePair<double, ClosedStockToken>> closedTokens = new List<KeyValuePair<double, ClosedStockToken>>();
         public List<KeyValuePair<DateTime, double>> i7 {get;set;}
@@ -26,6 +26,7 @@ namespace ApiChecker.InvestingStrategies
         public List<DateTime> BuyDates = new List<DateTime>();
         public double moneyToInvest = 0;
         public double investedMoney = 0;
+        public double intervalSavings = 0;
 
 
         public void Buy(DateTime investDay)
@@ -73,16 +74,29 @@ namespace ApiChecker.InvestingStrategies
 
             if (AreEqual)
             {
-                var nextDays=VerifyNext5Days(investDay).ToList();
-                if(nextDays.All(d=>d==StockAction.Buy) && nextDays.Count() == 3)
+                bool end = false;
+                var iDay = investDay;
+                while (end == false)
                 {
-                    Buy(investDay.AddDays(5));
-                    nextDate = investDay.AddDays(5);
-                }
-                if (nextDays.All(d => d == StockAction.Sell) && nextDays.Count() == 3)
-                {
-                    Sell(investDay.AddDays(5));
-                    nextDate = investDay.AddDays(5);
+                    //here is wrong because it  add each time new invested an so on
+                    // day mover  and event shoud be used
+                    // or in while loop - just flag to monitor next 3 days and waiting for result
+                    var nextDays = VerifyNext3Days(iDay).ToList();
+                    nextDate = iDay.AddDays(3);
+                    if (nextDays.All(d => d == StockAction.Buy) && nextDays.Count() == 3)
+                    {
+                        Buy(nextDate);
+                        end = true;
+                    }
+                    else if (nextDays.All(d => d == StockAction.Sell) && nextDays.Count() == 3)
+                    {
+                        Sell(nextDate);
+                        end = true;
+                    }
+                    else
+                    {
+                        iDay = iDay.AddDays(1);
+                    }
                 }
             }
 
@@ -111,11 +125,17 @@ namespace ApiChecker.InvestingStrategies
             return StockAction.Default;
         }
 
-        private IEnumerable<StockAction> VerifyNext5Days( DateTime investDay )
+        private IEnumerable<StockAction> VerifyNext3Days( DateTime investDay )
         {
             for (int i=1;i<4;i++)
             {
-                var stockAction=CheckAction(investDay.AddDays(i));
+                var day=investDay.AddDays(i);
+                if (datesToBuy.Contains(day))
+                {
+                    AddMoneyToInvest(day, intervalSavings);
+                    testIterator++;
+                }
+                var stockAction=CheckAction(day);
                 yield return stockAction;
 
             }
@@ -194,7 +214,7 @@ namespace ApiChecker.InvestingStrategies
 
             i7 = dataModel.GetIndicatorWithDatesFromDataModel(baseIndicator);
             i180 = dataModel.GetIndicatorWithDatesFromDataModel(Indicator);
-
+            intervalSavings = intervalMoneyUSD;
             
 
 
@@ -213,22 +233,31 @@ namespace ApiChecker.InvestingStrategies
                 if(datesToBuy.Contains(DayInLoop))
                 {
                     AddMoneyToInvest(DayInLoop, intervalMoneyUSD);
-                    iterator++;
+                    testIterator++;
                 }
+
+
+                //just monitor status
+                //add to list of statuses
+                //check last 4 => if wait and 3 buys => buy else sell
 
                 if (AreAlmostEqual(iSmall, iLarge))
                 {
+                    //check status
+                    //add status to list
                     //fix here
                     DayInLoop=TakeAction(DayInLoop);
 
                 }
+
+                //if 3 lats statuses == buy => buy  else sell
 
                 DayInLoop=DayInLoop.AddDays(1);
 
             }
 
             Sell(dt_EndDate);
-            Console.WriteLine("iterations:"+iterator);
+            Console.WriteLine("iterations:"+ testIterator);
             double paidInMoney = startMoneyUSD + datesToBuy.Count * intervalMoneyUSD;
             double resultWithoutTaxes = moneyToInvest;
 
