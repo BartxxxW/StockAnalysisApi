@@ -42,11 +42,11 @@ namespace ApiChecker.InvestingStrategies
         public double Balance { get;set; }
 
     }
-    public class Calendar
+    public class TimeLine
     {
         public DateTime StartDay { get; set; }
         public DateTime Today { get; set; }
-        public Calendar(string startDay)
+        public TimeLine(string startDay)
         {
             StartDay=DateTime.Parse(startDay);
             Today= StartDay;
@@ -59,14 +59,14 @@ namespace ApiChecker.InvestingStrategies
     }
     public class Account
     {
-        public Account(Calendar calendar)
+        public Account(TimeLine calendar)
         {
 
             //should account know sth about calendar ?
             Calendar=calendar;
         }
 
-        public Calendar Calendar { get; set; }
+        public TimeLine Calendar { get; set; }
         public double PaidInMoneyHistory = 0;
         public double MainAccount= 0;
         public double ReserveAccount= 0;
