@@ -8,8 +8,54 @@ using System.Threading.Tasks;
 
 namespace ApiChecker.InvestingStrategies
 {
+
+    public enum TradeSubject
+    {
+        LongCFD,
+        ShortCFD,
+        Stock
+    }
+    public class TokenList: List<KeyValuePair<double,Token>>
+    {
+        private void AddCFD(double quantity, string stockName, DateTime openDate, double openPrice, TradeSubject ts)
+        {
+            var token = new Token();
+            token.Subject = ts;
+            token.StockName = stockName;
+            token.OpenDate = openDate;
+            token.OpenPrice = openPrice;
+            Add(new KeyValuePair<double, Token>(quantity, token));
+        }
+        public TokenList AddLongPosition(double quantity,string stockName,DateTime openDate, double openPrice)
+        {
+            AddCFD(quantity, stockName, openDate, openPrice, TradeSubject.LongCFD);
+            return this;
+        }
+        public TokenList AddShortPosition(double quantity, string stockName, DateTime openDate, double openPrice)
+        {
+            AddCFD(quantity, stockName, openDate, openPrice, TradeSubject.ShortCFD);
+            return this;
+        }
+        public TokenList AddStock(double quantity, string stockName, DateTime openDate, double openPrice)
+        {
+            AddCFD(quantity, stockName, openDate, openPrice, TradeSubject.Stock);
+            return this;
+        }
+        public TokenList AddClosedRange(TokenList listToClose, double stockPrice, DateTime closeDate)
+        {
+            //modify it
+            //var adjustedCloseList = listToClose.ForEach(() =>
+            //{
+            //    i.Value.CloseDate = closeDate;
+            //    i.Value.ClosePrice = stockPrice;
+            //});
+            AddCFD(quantity, stockName, openDate, openPrice, TradeSubject.Stock);
+            return this;
+        }
+    }
     public class Token
     {
+        public TradeSubject Subject {  get; set; }
         public string StockName {get; set;}
         public DateTime OpenDate { get; set; }
         public DateTime CloseDate { get; set; }
@@ -42,14 +88,23 @@ namespace ApiChecker.InvestingStrategies
         public double Balance { get;set; }
 
     }
-    public class TimeLine
+
+    public interface ITimeLine
+    {
+        DateTime StartDay { get; set; }
+        DateTime Today { get; set; }
+
+        void MoveNext();
+    }
+
+    public class TimeLine : ITimeLine
     {
         public DateTime StartDay { get; set; }
         public DateTime Today { get; set; }
         public TimeLine(string startDay)
         {
-            StartDay=DateTime.Parse(startDay);
-            Today= StartDay;
+            StartDay = DateTime.Parse(startDay);
+            Today = StartDay;
 
         }
         public void MoveNext()
@@ -59,24 +114,25 @@ namespace ApiChecker.InvestingStrategies
     }
     public class Account
     {
-        public Account(TimeLine calendar)
+        public ITimeLine TimeLine { get; set; }
+        public IStrategy Strategy { get; set; }
+        public Account(ITimeLine timeLine, IStrategy strategy)
         {
-
-            //should account know sth about calendar ?
-            Calendar=calendar;
+            TimeLine = timeLine;
+            Strategy = strategy;
         }
 
-        public TimeLine Calendar { get; set; }
         public double PaidInMoneyHistory = 0;
         public double MainAccount= 0;
         public double ReserveAccount= 0;
         public double VirtualAccountBalance= 0;
         public  List<Operation> History = new List<Operation>();
-        public List<Token> LongPositions = new List<Token>();    
-        public List<Token> ShortPositions = new List<Token>(); 
-        public List<Token> Stocks = new List<Token>(); 
+        public TokenList LongPositions = new TokenList() ;    
+        public TokenList ShortPositions = new TokenList(); 
+        public TokenList Stocks = new TokenList(); 
+        public TokenList ClosedTokens = new TokenList(); 
 
-        public void WithdrawMoney(double amount)
+        public void WithdrawMoney(double amount,DateTime date)
         {
             if (amount < 0)
                 throw new ArgumentException("wrong amount of money");
@@ -87,36 +143,59 @@ namespace ApiChecker.InvestingStrategies
             }
 
             MainAccount -= amount;
-            History.Add(new Operation(OperationType.Withdrawal, Calendar.Today, amount));
+            History.Add(new Operation(OperationType.Withdrawal, date, amount));
 
         }
-        public void PayInMoney(double amount)
+        public void PayInMoney(double amount, DateTime date)
         {
             if (amount < 0)
                 throw new ArgumentException("wrong amount of money");
 
 
             MainAccount += amount;
-            History.Add(new Operation(OperationType.Payment, Calendar.Today, amount));
+            History.Add(new Operation(OperationType.Payment, date, amount));
 
         }
         // event to calculate virtual balance is it exceeded? for date change
-        public void OpenLongPosition(double amount, double stockPrice)
+        public void OpenLongPosition(double amount, double stockPrice, string StockName)
+        {
+            if (amount < stockPrice)
+                throw new ArgumentException("not enaugh money to buy");
+
+            double tokensQuantity = stockPrice / amount;
+            LongPositions.AddLongPosition(tokensQuantity, StockName,TimeLine.Today,stockPrice);
+
+        }
+        public void OpenShortPosition(double amount, double stockPrice , string StockName)
+        {
+
+            if (amount < stockPrice)
+                throw new ArgumentException("not enaugh money to buy");
+
+            double tokensQuantity = stockPrice / amount;
+            LongPositions.AddShortPosition(tokensQuantity, StockName, TimeLine.Today, stockPrice);
+        }
+        public void CloseAllLongPositions( double stockPrice)
         {
 
         }
-        public void OpenShortPosition(double amount, double stockPrice)
+        public void CloseAllShortPositions(double stockPrice)
         {
 
         }
-        public void CloseLongPosition( double stockPrice)
+        public void BuyStock(double amount, double stockPrice, string StockName)
+        {
+            if (amount < stockPrice)
+                throw new ArgumentException("not enaugh money to buy");
+
+            double tokensQuantity = stockPrice / amount;
+            LongPositions.AddStock(tokensQuantity, StockName, TimeLine.Today, stockPrice);
+        }
+        public void SellAllStocks(double stockPrice)
         {
 
         }
-        public void CloseShortPosition(double stockPrice)
-        {
 
-        }
 
     }
     public class CFDma:StratedyBase,IStrategy
