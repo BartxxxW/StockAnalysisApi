@@ -30,22 +30,51 @@ namespace ApiChecker.InvestingStrategies
     }
     public class Operation
     {
+        public Operation(OperationType operationType, DateTime date, double balance)
+        {
+            OperationType = operationType;
+            Date = date;
+            Balance = balance;
+        }
+
         public OperationType OperationType { get; set; }
         public DateTime Date { get; set; }
         public double Balance { get;set; }
 
     }
+    public class Calendar
+    {
+        public DateTime StartDay { get; set; }
+        public DateTime Today { get; set; }
+        public Calendar(string startDay)
+        {
+            StartDay=DateTime.Parse(startDay);
+            Today= StartDay;
+
+        }
+        public void MoveNext()
+        {
+            Today = Today.AddDays(1);
+        }
+    }
     public class Account
     {
-        public DateTime Calendar { get; set; }
+        public Account(Calendar calendar)
+        {
+
+            //should account know sth about calendar ?
+            Calendar=calendar;
+        }
+
+        public Calendar Calendar { get; set; }
         public double PaidInMoneyHistory = 0;
         public double MainAccount= 0;
         public double ReserveAccount= 0;
         public double VirtualAccountBalance= 0;
-        public  List<Operation> History { get; set; }
-        public List<Token> LongPositions { get; set; } 
-        public List<Token> ShortPositions { get; set; } 
-        public List<Token> Stocks { get; set; } 
+        public  List<Operation> History = new List<Operation>();
+        public List<Token> LongPositions = new List<Token>();    
+        public List<Token> ShortPositions = new List<Token>(); 
+        public List<Token> Stocks = new List<Token>(); 
 
         public void WithdrawMoney(double amount)
         {
@@ -58,9 +87,37 @@ namespace ApiChecker.InvestingStrategies
             }
 
             MainAccount -= amount;
-            History.Add(new Ope)
+            History.Add(new Operation(OperationType.Withdrawal, Calendar.Today, amount));
 
         }
+        public void PayInMoney(double amount)
+        {
+            if (amount < 0)
+                throw new ArgumentException("wrong amount of money");
+
+
+            MainAccount += amount;
+            History.Add(new Operation(OperationType.Payment, Calendar.Today, amount));
+
+        }
+        // event to calculate virtual balance is it exceeded? for date change
+        public void OpenLongPosition(double amount, double stockPrice)
+        {
+
+        }
+        public void OpenShortPosition(double amount, double stockPrice)
+        {
+
+        }
+        public void CloseLongPosition( double stockPrice)
+        {
+
+        }
+        public void CloseShortPosition(double stockPrice)
+        {
+
+        }
+
     }
     public class CFDma:StratedyBase,IStrategy
     {
