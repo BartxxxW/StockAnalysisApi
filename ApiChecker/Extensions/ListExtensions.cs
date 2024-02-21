@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ApiChecker.InvestingStrategies;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -34,5 +35,16 @@ namespace ApiChecker.Extensions
         {
             return stocks.Where(i => i.Key >= date && i.Key < date.AddDays(4)).FirstOrDefault().Key;
         }
+        public static TokenList CastToClosedToken (this TokenList tokenList, DateTime date, double stockPrice) 
+        {
+            tokenList.ForEach(e=>e.Value.CastToClosedToken(date,stockPrice));
+            return tokenList;
+
+        }
+        public static double CalculateEndValue(this TokenList tokenList) 
+        {
+            return tokenList.Select(t=>t.Value.ClosePrice).Sum();
+        }
+        
     }
 }

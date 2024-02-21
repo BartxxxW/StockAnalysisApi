@@ -41,15 +41,9 @@ namespace ApiChecker.InvestingStrategies
             AddCFD(quantity, stockName, openDate, openPrice, TradeSubject.Stock);
             return this;
         }
-        public TokenList AddClosedRange(TokenList listToClose, double stockPrice, DateTime closeDate)
+        public TokenList AddClosedRange(TokenList listToClose)
         {
-            //modify it
-            //var adjustedCloseList = listToClose.ForEach(() =>
-            //{
-            //    i.Value.CloseDate = closeDate;
-            //    i.Value.ClosePrice = stockPrice;
-            //});
-            AddCFD(quantity, stockName, openDate, openPrice, TradeSubject.Stock);
+            AddRange(listToClose);
             return this;
         }
     }
@@ -143,7 +137,7 @@ namespace ApiChecker.InvestingStrategies
             }
 
             MainAccount -= amount;
-            History.Add(new Operation(OperationType.Withdrawal, date, amount));
+            History.Add(new Operation(OperationType.Withdrawal, date, -amount));
 
         }
         public void PayInMoney(double amount, DateTime date)
@@ -162,8 +156,10 @@ namespace ApiChecker.InvestingStrategies
             if (amount < stockPrice)
                 throw new ArgumentException("not enaugh money to buy");
 
+            MainAccount -= amount;
             double tokensQuantity = stockPrice / amount;
             LongPositions.AddLongPosition(tokensQuantity, StockName,TimeLine.Today,stockPrice);
+            History.Add(new Operation(OperationType.OpenLong, TimeLine.Today, -amount));
 
         }
         public void OpenShortPosition(double amount, double stockPrice , string StockName)
@@ -172,12 +168,19 @@ namespace ApiChecker.InvestingStrategies
             if (amount < stockPrice)
                 throw new ArgumentException("not enaugh money to buy");
 
+            MainAccount -= amount;
             double tokensQuantity = stockPrice / amount;
             LongPositions.AddShortPosition(tokensQuantity, StockName, TimeLine.Today, stockPrice);
+            History.Add(new Operation(OperationType.OpenShort, TimeLine.Today, -amount));
         }
         public void CloseAllLongPositions( double stockPrice)
         {
-
+            var closedTokenTempList = LongPositions.CastToClosedToken(TimeLine.Today, stockPrice);
+            var amount=closedTokenTempList.CalculateEndValue();
+            MainAccount += amount;
+            ClosedTokens.AddClosedRange(closedTokenTempList);
+            LongPositions.Clear();
+            History.Add(new Operation(OperationType.CloseLong, TimeLine.Today, amount));
         }
         public void CloseAllShortPositions(double stockPrice)
         {

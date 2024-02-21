@@ -34,5 +34,11 @@ namespace ApiChecker.Extensions
 
             return res;
         }
+        public static Token CastToClosedToken(this Token token,DateTime date, double stockPrice) 
+        {
+            token.CloseDate=date;
+            token.ClosePrice=stockPrice;
+            return token;
+        }
     }
 }
