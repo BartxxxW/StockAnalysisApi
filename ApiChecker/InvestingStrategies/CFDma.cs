@@ -184,7 +184,12 @@ namespace ApiChecker.InvestingStrategies
         }
         public void CloseAllShortPositions(double stockPrice)
         {
-
+            var closedTokenTempList = ShortPositions.CastToClosedToken(TimeLine.Today, stockPrice);
+            var amount = closedTokenTempList.CalculateEndValue();
+            MainAccount += amount;
+            ClosedTokens.AddClosedRange(closedTokenTempList);
+            ShortPositions.Clear();
+            History.Add(new Operation(OperationType.CloseShort, TimeLine.Today, amount));
         }
         public void BuyStock(double amount, double stockPrice, string StockName)
         {
