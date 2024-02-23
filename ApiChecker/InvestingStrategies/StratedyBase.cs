@@ -106,8 +106,11 @@ namespace ApiChecker.InvestingStrategies
             }
             return StockAction.Default;
         }
-        public void GetDatesToBuy(string startDate, string endDate, int intervalMonths)
+        public void GetDatesToBuy(string startDate, string endDate, int intervalMonths, bool withStartDay=false)
         {
+            if (withStartDay)
+                datesToBuy.Add(DateTime.Parse(startDate));
+
             var nextDate = DateTime.Parse(startDate).AddMonths(intervalMonths);
             while (nextDate <= DateTime.Parse(endDate))
             {

@@ -45,6 +45,25 @@ namespace ApiChecker.Extensions
         {
             return tokenList.Select(t=>t.Value.ClosePrice).Sum();
         }
-        
+        public static double CalculateStartValue(this TokenList tokenList)
+        {
+            return tokenList.Select(t => t.Value.OpenPrice).Sum();
+        }
+        public static double CalculateBeforeLevar(this TokenList tokenList)
+        {
+            return tokenList.Select(t => t.Value.OpenPrice / t.Value.Levar).Sum();
+        }
+
+        public static double PayForSwap(this TokenList tokenList, double percent,DateTime date)
+        {
+            if (tokenList.Count == 0 || percent==0)
+            {
+                return 0;
+            }
+
+            return tokenList.Where(t=>t.Value.OpenDate!=date)
+                .Select(t => t.Key * t.Value.OpenPrice* t.Value.Levar * percent)
+                .Sum();
+        }
     }
 }

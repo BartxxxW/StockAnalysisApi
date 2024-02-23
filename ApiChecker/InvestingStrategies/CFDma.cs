@@ -2,7 +2,9 @@
 using ApiChecker.Models;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -17,28 +19,29 @@ namespace ApiChecker.InvestingStrategies
     }
     public class TokenList: List<KeyValuePair<double,Token>>
     {
-        private void AddCFD(double quantity, string stockName, DateTime openDate, double openPrice, TradeSubject ts)
+        private void AddToken(double quantity, string stockName, DateTime openDate, double openPrice, TradeSubject ts, double levar = 1)
         {
             var token = new Token();
             token.Subject = ts;
             token.StockName = stockName;
             token.OpenDate = openDate;
             token.OpenPrice = openPrice;
+            token.Levar = levar;
             Add(new KeyValuePair<double, Token>(quantity, token));
         }
-        public TokenList AddLongPosition(double quantity,string stockName,DateTime openDate, double openPrice)
+        public TokenList AddLongPosition(double quantity,string stockName,DateTime openDate, double openPrice,double levar)
         {
-            AddCFD(quantity, stockName, openDate, openPrice, TradeSubject.LongCFD);
+            AddToken(quantity, stockName, openDate, openPrice, TradeSubject.LongCFD,levar);
             return this;
         }
-        public TokenList AddShortPosition(double quantity, string stockName, DateTime openDate, double openPrice)
+        public TokenList AddShortPosition(double quantity, string stockName, DateTime openDate, double openPrice, double levar)
         {
-            AddCFD(quantity, stockName, openDate, openPrice, TradeSubject.ShortCFD);
+            AddToken(quantity, stockName, openDate, openPrice, TradeSubject.ShortCFD,levar);
             return this;
         }
         public TokenList AddStock(double quantity, string stockName, DateTime openDate, double openPrice)
         {
-            AddCFD(quantity, stockName, openDate, openPrice, TradeSubject.Stock);
+            AddToken(quantity, stockName, openDate, openPrice, TradeSubject.Stock);
             return this;
         }
         public TokenList AddClosedRange(TokenList listToClose)
@@ -55,6 +58,7 @@ namespace ApiChecker.InvestingStrategies
         public DateTime CloseDate { get; set; }
         public double OpenPrice { get; set; }
         public double ClosePrice { get; set; }
+        public double Levar { get; set; } = 1;
     }
     public enum OperationType
     {
@@ -110,7 +114,7 @@ namespace ApiChecker.InvestingStrategies
     {
         public ITimeLine TimeLine { get; set; }
         public IStrategy Strategy { get; set; }
-        public Account(ITimeLine timeLine, IStrategy strategy)
+        public Account(ITimeLine timeLine, IStrategy strategy=null)
         {
             TimeLine = timeLine;
             Strategy = strategy;
@@ -124,8 +128,25 @@ namespace ApiChecker.InvestingStrategies
         public TokenList LongPositions = new TokenList() ;    
         public TokenList ShortPositions = new TokenList(); 
         public TokenList Stocks = new TokenList(); 
-        public TokenList ClosedTokens = new TokenList(); 
+        public TokenList ClosedTokens = new TokenList();
+        public List<KeyValuePair<double, DateTime>> ClosedTokensBilans = new List<KeyValuePair<double, DateTime>>();
+        //public ContractList OpenContracts = new ContractList();
 
+        //public class CfdContract
+        //{
+
+        //}
+        //public class ContractList:List<CfdContract>
+        //{
+
+        //}
+        public void MoveToReserveAccount(double amount)
+        {
+            if (amount > MainAccount)
+                return;
+            MainAccount-=amount;
+            ReserveAccount += amount;
+        }
         public void WithdrawMoney(double amount,DateTime date)
         {
             if (amount < 0)
@@ -140,102 +161,171 @@ namespace ApiChecker.InvestingStrategies
             History.Add(new Operation(OperationType.Withdrawal, date, -amount));
 
         }
-        public void PayInMoney(double amount, DateTime date)
+        public void PayForSth(double amount, DateTime date)
+        {
+            WithdrawMoney(amount, date);
+        }
+        public void PayInMoney(double amount)
         {
             if (amount < 0)
                 throw new ArgumentException("wrong amount of money");
 
 
             MainAccount += amount;
-            History.Add(new Operation(OperationType.Payment, date, amount));
+            PaidInMoneyHistory += amount;
+            History.Add(new Operation(OperationType.Payment, TimeLine.Today, amount));
 
         }
         // event to calculate virtual balance is it exceeded? for date change
-        public void OpenLongPosition(double amount, double stockPrice, string StockName)
+        public void OpenLongPosition(double amount, double stockPrice, string StockName, double levar)
         {
             if (amount < stockPrice)
                 throw new ArgumentException("not enaugh money to buy");
 
             MainAccount -= amount;
-            double tokensQuantity = stockPrice / amount;
-            LongPositions.AddLongPosition(tokensQuantity, StockName,TimeLine.Today,stockPrice);
+            double tokensQuantity = (amount * levar) / stockPrice;
+            LongPositions.AddLongPosition(tokensQuantity, StockName,TimeLine.Today,stockPrice, levar);
             History.Add(new Operation(OperationType.OpenLong, TimeLine.Today, -amount));
 
         }
-        public void OpenShortPosition(double amount, double stockPrice , string StockName)
+        public void OpenShortPosition(double amount, double stockPrice , string StockName,double levar)
         {
 
             if (amount < stockPrice)
                 throw new ArgumentException("not enaugh money to buy");
 
             MainAccount -= amount;
-            double tokensQuantity = stockPrice / amount;
-            LongPositions.AddShortPosition(tokensQuantity, StockName, TimeLine.Today, stockPrice);
+            double tokensQuantity = (amount*levar)/stockPrice ;
+            ShortPositions.AddShortPosition(tokensQuantity, StockName, TimeLine.Today, stockPrice, levar);
             History.Add(new Operation(OperationType.OpenShort, TimeLine.Today, -amount));
         }
         public void CloseAllLongPositions( double stockPrice)
         {
             var closedTokenTempList = LongPositions.CastToClosedToken(TimeLine.Today, stockPrice);
-            var amount=closedTokenTempList.CalculateEndValue();
+            double beforeLevar=closedTokenTempList.CalculateBeforeLevar();
+            double startValue=closedTokenTempList.CalculateStartValue();
+            double endValue=closedTokenTempList.CalculateEndValue();
+            double diff = endValue- startValue;
+
+            double amount = beforeLevar + diff;// longs => when raised => there is gain
             MainAccount += amount;
             ClosedTokens.AddClosedRange(closedTokenTempList);
             LongPositions.Clear();
             History.Add(new Operation(OperationType.CloseLong, TimeLine.Today, amount));
+            ClosedTokensBilans.Add(new KeyValuePair<double, DateTime>(diff, TimeLine.Today));
         }
         public void CloseAllShortPositions(double stockPrice)
         {
+            //bug
             var closedTokenTempList = ShortPositions.CastToClosedToken(TimeLine.Today, stockPrice);
-            var amount = closedTokenTempList.CalculateEndValue();
+            double beforeLevar = closedTokenTempList.CalculateBeforeLevar();
+            double startValue = closedTokenTempList.CalculateStartValue();
+            double endValue = closedTokenTempList.CalculateEndValue();
+            double diff = endValue - startValue;
+
+            double amount = beforeLevar - diff; // shorts => when decreased => there is gain
             MainAccount += amount;
             ClosedTokens.AddClosedRange(closedTokenTempList);
             ShortPositions.Clear();
             History.Add(new Operation(OperationType.CloseShort, TimeLine.Today, amount));
+            ClosedTokensBilans.Add(new KeyValuePair<double, DateTime>(diff, TimeLine.Today));
         }
         public void BuyStock(double amount, double stockPrice, string StockName)
         {
             if (amount < stockPrice)
                 throw new ArgumentException("not enaugh money to buy");
 
-            double tokensQuantity = stockPrice / amount;
-            LongPositions.AddStock(tokensQuantity, StockName, TimeLine.Today, stockPrice);
+            double tokensQuantity = amount/stockPrice;
+            Stocks.AddStock(tokensQuantity, StockName, TimeLine.Today, stockPrice);
         }
         public void SellAllStocks(double stockPrice)
         {
+            var closedTokenTempList = Stocks.CastToClosedToken(TimeLine.Today, stockPrice);
+            var amount = closedTokenTempList.CalculateEndValue();
+            // calculate start value
+            //calculate diff and add to diff
 
+            MainAccount += amount;
+            ClosedTokens.AddClosedRange(closedTokenTempList);
+            Stocks.Clear();
+            History.Add(new Operation(OperationType.Sell, TimeLine.Today, amount));
+            //develop all actions
+            //money changes
         }
 
 
     }
     public class CFDma:StratedyBase,IStrategy
     {
-        public double Simulate(string baseIndicator, string Indicator, ProcessedStockDataModel dataModel, string startDate, string endDate, double startMoneyUSD, double intervalMoneyUSD, int intervalMonths)
+        public Account Account { get; set; }
+        public TimeLine TimeLine { get; set; }
+        public string  StockName { get; set; }
+        public double  Lever { get; set; }
+        public void TakeActionCFD(StockAction action, DateTime investDay)
         {
+            double stockPriceNow= filteredStockPrices.GetStockValue(investDay);
+
+            if (action == StockAction.Buy)// will raise
+            {
+                Account.CloseAllShortPositions(stockPriceNow);
+                Account.OpenLongPosition(0.8*Account.MainAccount, stockPriceNow, StockName, Lever);
+            }
+
+            if (action == StockAction.Sell) // will drop down
+            {
+                Account.CloseAllLongPositions(stockPriceNow);
+                Account.OpenShortPosition(0.8*Account.MainAccount, stockPriceNow, StockName, Lever);
+            }
+        }
+
+        public double Simulate(string stockName,double lever, double percentSwapLong, double percentSwapShort, string baseIndicator, string Indicator, ProcessedStockDataModel dataModel, string startDate, string endDate, double startMoneyUSD, double intervalMoneyUSD, int intervalMonths)
+        {
+            StockName=stockName;
+            Lever=lever;
+
+            TimeLine = new TimeLine(startDate);
+            Account = new Account(TimeLine);
 
             i7 = dataModel.GetIndicatorWithDatesFromDataModel(baseIndicator);
             i180 = dataModel.GetIndicatorWithDatesFromDataModel(Indicator);
+
             filteredStockPrices = dataModel.StockPrices.GetStockRangeByDate(startDate, endDate);
 
-            base.EndDate = filteredStockPrices.Last().Key.Date;
             base.StartDate = DateTime.Parse(startDate);
+            base.EndDate = filteredStockPrices.Last().Key.Date;
 
-            GetDatesToBuy(startDate, EndDate.ToString(), intervalMonths);
+            GetDatesToBuy(startDate, EndDate.ToString(), intervalMonths,true);
 
 
-            var DayInLoop = StartDate;
-
-            while (DayInLoop <= EndDate)
+            while (TimeLine.Today <= EndDate)
             {
-                if (datesToBuy.Contains(DayInLoop))
+                if (datesToBuy.Contains(TimeLine.Today) && TimeLine.Today != StartDate)
                 {
-                    AddMoneyToInvest(DayInLoop, intervalMoneyUSD);
+                    Account.PayInMoney(intervalMoneyUSD);
+                }
+                if (datesToBuy.Contains(TimeLine.Today) && TimeLine.Today == StartDate)
+                {
+                    Account.PayInMoney(startMoneyUSD);
                 }
 
-                //CheckMAstatus()
-                //CheckRSIstatus()
+
+                StockActions.Add(CheckAction(TimeLine.Today));
+
+                TakeActionCFD(Last3Days(), TimeLine.Today);
 
 
+                TimeLine.MoveNext();
 
+                Account.PayForSth(Account.LongPositions.PayForSwap(percentSwapLong, TimeLine.Today),TimeLine.Today);
             }
+
+
+
+
+            
+
+
+
 
             return 0;
         }
