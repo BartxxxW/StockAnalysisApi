@@ -54,16 +54,48 @@ namespace ApiChecker.Extensions
             return tokenList.Select(t => t.Value.OpenPrice / t.Value.Levar).Sum();
         }
 
-        public static double PayForSwap(this TokenList tokenList, double percent,DateTime date)
+        public static void PayForSwap(this Account account, double percent,DateTime date)
         {
-            if (tokenList.Count == 0 || percent==0)
+            if (account.LongPositions.Count == 0 || percent==0)
             {
-                return 0;
+                return;
+            }
+            percent = percent / 100;
+
+            var valueToPay= account.LongPositions.Where(t => t.Value.OpenDate != date)
+                .Select(t => t.Key * t.Value.OpenPrice * percent)
+                .Sum();
+
+            if(valueToPay>=account.ReserveAccount)
+            {
+                Console.WriteLine(  "it is");
             }
 
-            return tokenList.Where(t=>t.Value.OpenDate!=date)
-                .Select(t => t.Key * t.Value.OpenPrice* t.Value.Levar * percent)
-                .Sum();
+            account.PayWithReserveAccount(valueToPay,true);
+        }
+        public static void PayTaxes( this Account account)
+        {
+            double TaxToPay = 0;
+            HashSet<int> taxYears = new HashSet<int>();
+            account.ClosedTokensBilans.Select(t => t.Value.Year).ToList().ForEach(date => taxYears.Add(date));
+
+            foreach (var taxYear in taxYears)
+            {
+                double bilans = account.ClosedTokensBilans.Where(i => i.Value.Year == taxYear).Select(i=>i.Key).Sum();
+
+                TaxToPay += bilans.Calculate19Tax();
+
+            }
+
+            account.PayForSth(TaxToPay);
+        }
+
+        public static double Calculate19Tax(this double money)
+        {
+            if (money < 0)
+                return 0;
+
+            return money * 0.19; ;
         }
     }
 }

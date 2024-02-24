@@ -86,6 +86,10 @@ var maStrategy = new MA();
 
 maStrategy.Simulate("EMA50", "EMA200", datamodel, "15-01-2007", "15-01-2012", 1000, 1000, 4);
 
+var CFDmaStrategy = new CFDma();
+
+CFDmaStrategy.Simulate("SPY", 20, 0.0259, "EMA50", "EMA200", datamodel, "15-01-2007", "15-01-2012", 1000, 1000, 4);
+
 
 double[] xs = datamodel.xAxis.Select(tds => tds.ToOADate()).ToArray();
 double[] ys = datamodel.yValues.ToArray();
@@ -101,8 +105,11 @@ datamodel.IndicatorsList.ToList().ForEach(indicator=>plotter.AddScatter(indicato
 //plotter.Plt.AddScatter(newxS, ysNew);
 //plotter.Plt.AddScatterLines(newxS, ysNew);
 
-double[] sellDates=maStrategy.SellDates.Select(tds => tds.ToOADate()).ToArray();
-double[] buyDates= maStrategy.BuyDates.Select(tds => tds.ToOADate()).ToArray();
+double[] sellDates = CFDmaStrategy.SellDates.Select(tds => tds.ToOADate()).ToArray();
+double[] buyDates = CFDmaStrategy.BuyDates.Select(tds => tds.ToOADate()).ToArray();
+
+//double[] sellDates = maStrategy.SellDates.Select(tds => tds.ToOADate()).ToArray();
+//double[] buyDates = maStrategy.BuyDates.Select(tds => tds.ToOADate()).ToArray();
 
 sellDates.ToList().ForEach(d=>plotter.Plt.AddVerticalLine(d,color:Color.Red));
 buyDates.ToList().ForEach(d=>plotter.Plt.AddVerticalLine(d, color: Color.Green));

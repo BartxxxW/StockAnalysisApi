@@ -161,9 +161,28 @@ namespace ApiChecker.InvestingStrategies
             History.Add(new Operation(OperationType.Withdrawal, date, -amount));
 
         }
-        public void PayForSth(double amount, DateTime date)
+
+        public void PayWithReserveAccount(double amount, bool withDebt=false)
         {
-            WithdrawMoney(amount, date);
+            if (amount < 0)
+                throw new ArgumentException("wrong amount of money");
+
+            if ((ReserveAccount < 0 || ReserveAccount < amount) && withDebt==false)
+            {
+                throw new Exception("No Money");
+            }
+
+            ReserveAccount -= amount;
+            History.Add(new Operation(OperationType.Withdrawal, TimeLine.Today, -amount));
+
+        }
+        public void PayForSth(double amount, DateTime? date=null)
+        {
+            DateTime date_ = TimeLine.Today;
+            if (date != null)
+                date_ = date.Value;
+
+            WithdrawMoney(amount, date_);
         }
         public void PayInMoney(double amount)
         {
@@ -201,6 +220,9 @@ namespace ApiChecker.InvestingStrategies
         }
         public void CloseAllLongPositions( double stockPrice)
         {
+            if (LongPositions.Count == 0)
+                return;
+
             var closedTokenTempList = LongPositions.CastToClosedToken(TimeLine.Today, stockPrice);
             double beforeLevar=closedTokenTempList.CalculateBeforeLevar();
             double startValue=closedTokenTempList.CalculateStartValue();
@@ -216,7 +238,9 @@ namespace ApiChecker.InvestingStrategies
         }
         public void CloseAllShortPositions(double stockPrice)
         {
-            //bug
+            if (ShortPositions.Count == 0)
+                return;
+
             var closedTokenTempList = ShortPositions.CastToClosedToken(TimeLine.Today, stockPrice);
             double beforeLevar = closedTokenTempList.CalculateBeforeLevar();
             double startValue = closedTokenTempList.CalculateStartValue();
@@ -228,7 +252,7 @@ namespace ApiChecker.InvestingStrategies
             ClosedTokens.AddClosedRange(closedTokenTempList);
             ShortPositions.Clear();
             History.Add(new Operation(OperationType.CloseShort, TimeLine.Today, amount));
-            ClosedTokensBilans.Add(new KeyValuePair<double, DateTime>(diff, TimeLine.Today));
+            ClosedTokensBilans.Add(new KeyValuePair<double, DateTime>(-diff, TimeLine.Today));
         }
         public void BuyStock(double amount, double stockPrice, string StockName)
         {
@@ -240,17 +264,20 @@ namespace ApiChecker.InvestingStrategies
         }
         public void SellAllStocks(double stockPrice)
         {
+            if (Stocks.Count == 0)
+                return;
+
             var closedTokenTempList = Stocks.CastToClosedToken(TimeLine.Today, stockPrice);
             var amount = closedTokenTempList.CalculateEndValue();
-            // calculate start value
-            //calculate diff and add to diff
+            double startValue = closedTokenTempList.CalculateStartValue();
+            double diff = amount - startValue;
 
             MainAccount += amount;
             ClosedTokens.AddClosedRange(closedTokenTempList);
             Stocks.Clear();
             History.Add(new Operation(OperationType.Sell, TimeLine.Today, amount));
-            //develop all actions
-            //money changes
+            ClosedTokensBilans.Add(new KeyValuePair<double, DateTime>(diff, TimeLine.Today));
+
         }
 
 
@@ -261,24 +288,28 @@ namespace ApiChecker.InvestingStrategies
         public TimeLine TimeLine { get; set; }
         public string  StockName { get; set; }
         public double  Lever { get; set; }
-        public void TakeActionCFD(StockAction action, DateTime investDay)
-        {
-            double stockPriceNow= filteredStockPrices.GetStockValue(investDay);
 
+        public double StockPriceNow=> filteredStockPrices.GetStockValue(TimeLine.Today);
+        public void TakeActionCFD(StockAction action)
+        {
             if (action == StockAction.Buy)// will raise
             {
-                Account.CloseAllShortPositions(stockPriceNow);
-                Account.OpenLongPosition(0.8*Account.MainAccount, stockPriceNow, StockName, Lever);
+                Account.CloseAllShortPositions(StockPriceNow);
+                Account.OpenLongPosition(0.6*Account.MainAccount, StockPriceNow, StockName, Lever);
+                Account.MoveToReserveAccount(Account.MainAccount);
+                BuyDates.Add(TimeLine.Today);
             }
 
             if (action == StockAction.Sell) // will drop down
             {
-                Account.CloseAllLongPositions(stockPriceNow);
-                Account.OpenShortPosition(0.8*Account.MainAccount, stockPriceNow, StockName, Lever);
+                Account.CloseAllLongPositions(StockPriceNow);
+                Account.OpenShortPosition(0.6*Account.MainAccount, StockPriceNow, StockName, Lever);
+                Account.MoveToReserveAccount(Account.MainAccount);
+                SellDates.Add(TimeLine.Today);
             }
         }
 
-        public double Simulate(string stockName,double lever, double percentSwapLong, double percentSwapShort, string baseIndicator, string Indicator, ProcessedStockDataModel dataModel, string startDate, string endDate, double startMoneyUSD, double intervalMoneyUSD, int intervalMonths)
+        public double Simulate(string stockName,double lever, double percentSwapLong, string baseIndicator, string Indicator, ProcessedStockDataModel dataModel, string startDate, string endDate, double startMoneyUSD, double intervalMoneyUSD, int intervalMonths)
         {
             StockName=stockName;
             Lever=lever;
@@ -311,20 +342,32 @@ namespace ApiChecker.InvestingStrategies
 
                 StockActions.Add(CheckAction(TimeLine.Today));
 
-                TakeActionCFD(Last3Days(), TimeLine.Today);
+                TakeActionCFD(Last3Days());
 
 
                 TimeLine.MoveNext();
 
-                Account.PayForSth(Account.LongPositions.PayForSwap(percentSwapLong, TimeLine.Today),TimeLine.Today);
+                Account.PayForSwap(percentSwapLong, TimeLine.Today);
+
+                if(Account.ReserveAccount<0) 
+                {
+                    break;
+                }
             }
 
-            //Pay for taxes
+            Account.SellAllStocks(StockPriceNow);
+            Account.CloseAllLongPositions(StockPriceNow);
+            Account.CloseAllShortPositions(StockPriceNow);
 
+            Account.PayTaxes();
 
-            
+            Console.WriteLine($"MA=> PaidIn:{Account.PaidInMoneyHistory} ; result after and other costs taxes: {Account.MainAccount}");
 
+            //strategy to be further developed :
+            // =>> need to pay swap from nominal value of contract?
+            // ==> playing with alorithm  to  buy  when RSI has appropriate value (waiting for it ) additionaly when Take Action trigger
 
+            // debug - check passing object and so on
 
 
             return 0;
