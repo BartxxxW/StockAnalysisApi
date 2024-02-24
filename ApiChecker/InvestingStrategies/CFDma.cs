@@ -319,7 +319,7 @@ namespace ApiChecker.InvestingStrategies
                 Account.PayForSth(Account.LongPositions.PayForSwap(percentSwapLong, TimeLine.Today),TimeLine.Today);
             }
 
-
+            //Pay for taxes
 
 
             
