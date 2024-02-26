@@ -48,9 +48,10 @@ var stockApi = conteiner.Resolve<IStockAPI>();
 var dbContext = conteiner.Resolve<StockDbContext>();
 dbContext.Database.EnsureCreated();
 
+//SPY => as s&p500
 //var datamodel = stockApi.GetStockData("QQQ").ReturnApiData(); //SPY etc
 // for now just modificator bool update
-var datamodel = stockApi.GetStockData("SPY",startDay:"1997-04-04")
+var datamodel = stockApi.GetStockData("SPY", startDay:"1997-04-04",apiUp:false)
     //.AddIndicator(Indicators.EMA,7)
     //.AddIndicator(Indicators.SMA,50)
     //.AddIndicator(Indicators.EMA,180)
@@ -105,11 +106,11 @@ datamodel.IndicatorsList.ToList().ForEach(indicator=>plotter.AddScatter(indicato
 //plotter.Plt.AddScatter(newxS, ysNew);
 //plotter.Plt.AddScatterLines(newxS, ysNew);
 
-double[] sellDates = CFDmaStrategy.SellDates.Select(tds => tds.ToOADate()).ToArray();
-double[] buyDates = CFDmaStrategy.BuyDates.Select(tds => tds.ToOADate()).ToArray();
+//double[] sellDates = CFDmaStrategy.SellDates.Select(tds => tds.ToOADate()).ToArray();
+//double[] buyDates = CFDmaStrategy.BuyDates.Select(tds => tds.ToOADate()).ToArray();
 
-//double[] sellDates = maStrategy.SellDates.Select(tds => tds.ToOADate()).ToArray();
-//double[] buyDates = maStrategy.BuyDates.Select(tds => tds.ToOADate()).ToArray();
+double[] sellDates = maStrategy.SellDates.Select(tds => tds.ToOADate()).ToArray();
+double[] buyDates = maStrategy.BuyDates.Select(tds => tds.ToOADate()).ToArray();
 
 sellDates.ToList().ForEach(d=>plotter.Plt.AddVerticalLine(d,color:Color.Red));
 buyDates.ToList().ForEach(d=>plotter.Plt.AddVerticalLine(d, color: Color.Green));

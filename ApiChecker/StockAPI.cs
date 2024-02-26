@@ -16,7 +16,7 @@ namespace ApiChecker
 {
     public interface IGetStockData
     {
-        IStockActions GetStockData(string StockSymbol, Sources sources = Sources.AlphaVintage, TimeSeries timeSeries=TimeSeries.Daily, string startDay = "", string endDay = "");
+        IStockActions GetStockData(string StockSymbol, Sources sources = Sources.AlphaVintage, TimeSeries timeSeries=TimeSeries.Daily, string startDay = "", string endDay = "", bool apiUp = false);
     }
     public interface IStockActions
     {
@@ -32,16 +32,24 @@ namespace ApiChecker
         public List<StockModel> StockData { get; set; }
 
 
-        public IStockActions GetStockData(string StockSymbol, Sources sources = Sources.AlphaVintage, TimeSeries timeSeries = TimeSeries.Daily, string startDay = "", string endDay = "")
+        public IStockActions GetStockData(string StockSymbol, Sources sources = Sources.AlphaVintage, TimeSeries timeSeries = TimeSeries.Daily, string startDay = "", string endDay = "", bool apiUp=false)
         {
             //here try get from db
-            //var stockModel = _servicesResolver.GetService(sources).Action(StockSymbol, timeSeries);
-            //var stockListToSave=stockModel.Select(s=>s.ConvertToStockDto().WithName(StockSymbol)).ToList();
-            //_dbContext.AddRange(stockListToSave);
-            //_dbContext.SaveChanges();
+
             // get from db 
             var dbData=_dbContext.Stocks.Where(s=>s.Name.Equals(StockSymbol));
             var stockModel = dbData.Select(s => s.ConvertToStockModel()) as IEnumerable<StockModel>;
+
+            if(apiUp==true)
+            {
+                _dbContext.Stocks.RemoveRange(dbData);
+
+                stockModel = _servicesResolver.GetService(sources).Action(StockSymbol, timeSeries);
+                var stockListToSave = stockModel.Select(s => s.ConvertToStockDto().WithName(StockSymbol)).ToList();
+                _dbContext.AddRange(stockListToSave);
+                _dbContext.SaveChanges();
+            }
+
             // save range / clear range
 
             if (startDay != "")

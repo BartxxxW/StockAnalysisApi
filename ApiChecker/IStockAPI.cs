@@ -11,7 +11,7 @@ namespace ApiChecker
         List<StockModel> StockData { get; set; }
 
         IStockActions AddIndicator(string indicator, params int[] param);
-        IStockActions GetStockData(string StockSymbol, Sources sources = Sources.AlphaVintage, TimeSeries timeSeries = TimeSeries.Daily, string startDay = "", string endDay = "");
+        IStockActions GetStockData(string StockSymbol, Sources sources = Sources.AlphaVintage, TimeSeries timeSeries = TimeSeries.Daily, string startDay = "", string endDay = "", bool apiUp = false);
         ProcessedStockDataModel ReturnApiData();
     }
 }
