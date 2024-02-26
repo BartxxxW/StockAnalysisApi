@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
@@ -114,22 +115,23 @@ namespace ApiChecker.InvestingStrategies
     {
         public ITimeLine TimeLine { get; set; }
         public IStrategy Strategy { get; set; }
-        public Account(ITimeLine timeLine, IStrategy strategy=null)
+        public Account(ITimeLine timeLine, IStrategy strategy = null)
         {
             TimeLine = timeLine;
             Strategy = strategy;
         }
 
         public double PaidInMoneyHistory = 0;
-        public double MainAccount= 0;
-        public double ReserveAccount= 0;
-        public double VirtualAccountBalance= 0;
-        public  List<Operation> History = new List<Operation>();
-        public TokenList LongPositions = new TokenList() ;    
-        public TokenList ShortPositions = new TokenList(); 
-        public TokenList Stocks = new TokenList(); 
+        public double MainAccount = 0;
+        public double ReserveAccount = 0;
+        public double VirtualAccountBalance = 0;
+        public List<Operation> History = new List<Operation>();
+        public TokenList LongPositions = new TokenList();
+        public TokenList ShortPositions = new TokenList();
+        public TokenList Stocks = new TokenList();
         public TokenList ClosedTokens = new TokenList();
         public List<KeyValuePair<double, DateTime>> ClosedTokensBilans = new List<KeyValuePair<double, DateTime>>();
+        public double GetBilansForNow => 0; // bilans to develop
         //public ContractList OpenContracts = new ContractList();
 
         //public class CfdContract
@@ -339,7 +341,6 @@ namespace ApiChecker.InvestingStrategies
                     Account.PayInMoney(startMoneyUSD);
                 }
 
-
                 StockActions.Add(CheckAction(TimeLine.Today));
 
                 TakeActionCFD(Last3Days());
@@ -358,6 +359,8 @@ namespace ApiChecker.InvestingStrategies
             Account.SellAllStocks(StockPriceNow);
             Account.CloseAllLongPositions(StockPriceNow);
             Account.CloseAllShortPositions(StockPriceNow);
+
+            SellDates.Add(TimeLine.Today);
 
             Account.PayTaxes();
 

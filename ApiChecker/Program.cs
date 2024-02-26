@@ -106,11 +106,11 @@ datamodel.IndicatorsList.ToList().ForEach(indicator=>plotter.AddScatter(indicato
 //plotter.Plt.AddScatter(newxS, ysNew);
 //plotter.Plt.AddScatterLines(newxS, ysNew);
 
-//double[] sellDates = CFDmaStrategy.SellDates.Select(tds => tds.ToOADate()).ToArray();
-//double[] buyDates = CFDmaStrategy.BuyDates.Select(tds => tds.ToOADate()).ToArray();
+double[] sellDates = CFDmaStrategy.SellDates.Select(tds => tds.ToOADate()).ToArray();
+double[] buyDates = CFDmaStrategy.BuyDates.Select(tds => tds.ToOADate()).ToArray();
 
-double[] sellDates = maStrategy.SellDates.Select(tds => tds.ToOADate()).ToArray();
-double[] buyDates = maStrategy.BuyDates.Select(tds => tds.ToOADate()).ToArray();
+//double[] sellDates = maStrategy.SellDates.Select(tds => tds.ToOADate()).ToArray();
+//double[] buyDates = maStrategy.BuyDates.Select(tds => tds.ToOADate()).ToArray();
 
 sellDates.ToList().ForEach(d=>plotter.Plt.AddVerticalLine(d,color:Color.Red));
 buyDates.ToList().ForEach(d=>plotter.Plt.AddVerticalLine(d, color: Color.Green));

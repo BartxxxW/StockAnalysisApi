@@ -34,9 +34,6 @@ namespace ApiChecker
 
         public IStockActions GetStockData(string StockSymbol, Sources sources = Sources.AlphaVintage, TimeSeries timeSeries = TimeSeries.Daily, string startDay = "", string endDay = "", bool apiUp=false)
         {
-            //here try get from db
-
-            // get from db 
             var dbData=_dbContext.Stocks.Where(s=>s.Name.Equals(StockSymbol));
             var stockModel = dbData.Select(s => s.ConvertToStockModel()) as IEnumerable<StockModel>;
 
@@ -50,7 +47,6 @@ namespace ApiChecker
                 _dbContext.SaveChanges();
             }
 
-            // save range / clear range
 
             if (startDay != "")
                 stockModel = stockModel.Where(s => s.Date > DateTime.Parse(startDay));
