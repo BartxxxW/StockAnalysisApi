@@ -131,8 +131,43 @@ namespace ApiChecker.InvestingStrategies
         public TokenList Stocks = new TokenList();
         public TokenList ClosedTokens = new TokenList();
         public List<KeyValuePair<double, DateTime>> ClosedTokensBilans = new List<KeyValuePair<double, DateTime>>();
-        public double GetBilansForNow => 0; // bilans to develop
-        //public ContractList OpenContracts = new ContractList();
+        public double GetCfdBilansForNow(double stockPrice)
+        {
+            double bilans = 0;
+
+            //Long Positions
+            double amountLP = 0;
+            if (LongPositions.Count > 0)
+            {
+                double beforeLevarLP = LongPositions.CalculateBeforeLevar();
+                double startValueLP = LongPositions.CalculateStartValue();
+                double endValueLP = LongPositions.CalculateEndValue(stockPrice);
+                double diffLP = endValueLP - startValueLP;
+
+                amountLP = beforeLevarLP + diffLP;
+
+            }
+
+
+            //Short Positions
+            double amountSP = 0;
+            if (ShortPositions.Count>0) 
+            {
+                double beforeLevarSP = ShortPositions.CalculateBeforeLevar();
+                double startValueSP = ShortPositions.CalculateStartValue();
+                double endValueSP = ShortPositions.CalculateEndValue(stockPrice);
+                double diffSP = endValueSP - startValueSP;
+
+                amountSP = beforeLevarSP - diffSP;
+            }
+
+
+
+            bilans = amountLP + amountSP + MainAccount + ReserveAccount;
+
+            return bilans;
+        } // bilans to develop
+          //public ContractList OpenContracts = new ContractList();
 
         //public class CfdContract
         //{
@@ -142,6 +177,11 @@ namespace ApiChecker.InvestingStrategies
         //{
 
         //}
+        public void BackToMainAccount()
+        {
+            MainAccount += ReserveAccount;
+            ReserveAccount = 0;
+        }
         public void MoveToReserveAccount(double amount)
         {
             if (amount > MainAccount)
@@ -296,6 +336,7 @@ namespace ApiChecker.InvestingStrategies
         {
             if (action == StockAction.Buy)// will raise
             {
+                Account.BackToMainAccount();
                 Account.CloseAllShortPositions(StockPriceNow);
                 Account.OpenLongPosition(0.6*Account.MainAccount, StockPriceNow, StockName, Lever);
                 Account.MoveToReserveAccount(Account.MainAccount);
@@ -304,6 +345,7 @@ namespace ApiChecker.InvestingStrategies
 
             if (action == StockAction.Sell) // will drop down
             {
+                Account.BackToMainAccount();
                 Account.CloseAllLongPositions(StockPriceNow);
                 Account.OpenShortPosition(0.6*Account.MainAccount, StockPriceNow, StockName, Lever);
                 Account.MoveToReserveAccount(Account.MainAccount);
@@ -352,6 +394,15 @@ namespace ApiChecker.InvestingStrategies
 
                 if(Account.ReserveAccount<0) 
                 {
+                    Account.BackToMainAccount();
+                    Account.SellAllStocks(StockPriceNow);
+                    Account.CloseAllLongPositions(StockPriceNow);
+                    Account.CloseAllShortPositions(StockPriceNow);
+
+                    SellDates.Add(TimeLine.Today);
+                }
+                if(Account.GetCfdBilansForNow(StockPriceNow)<=0)
+                {
                     break;
                 }
             }
@@ -362,7 +413,7 @@ namespace ApiChecker.InvestingStrategies
 
             SellDates.Add(TimeLine.Today);
 
-            Account.PayTaxes();
+            //Account.PayTaxes();
 
             Console.WriteLine($"MA=> PaidIn:{Account.PaidInMoneyHistory} ; result after and other costs taxes: {Account.MainAccount}");
 

@@ -45,6 +45,10 @@ namespace ApiChecker.Extensions
         {
             return tokenList.Select(t=> t.Key * t.Value.ClosePrice).Sum();
         }
+        public static double CalculateEndValue(this TokenList tokenList, double stockPrice)
+        {
+            return tokenList.Select(t => t.Key * stockPrice).Sum();
+        }
         public static double CalculateStartValue(this TokenList tokenList)
         {
             return tokenList.Select(t => t.Key*t.Value.OpenPrice).Sum();
