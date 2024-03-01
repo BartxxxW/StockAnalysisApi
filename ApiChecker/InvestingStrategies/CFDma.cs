@@ -403,6 +403,7 @@ namespace ApiChecker.InvestingStrategies
                 }
                 if(Account.GetCfdBilansForNow(StockPriceNow)<=0)
                 {
+                   
                     break;
                 }
             }
